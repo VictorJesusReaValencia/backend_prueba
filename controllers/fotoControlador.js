@@ -1,0 +1,316 @@
+const Fotografia = require("../models/fotografia");
+const fotografia = require("../models/fotografia");
+const validator = require("validator")
+const fs = require("fs")
+
+const listar = async (req, res) => {
+    try {
+        let fotos = await Fotografia.find({}).sort({numero_foto:1});
+
+        if (!fotos) {
+            return res.status(404).json({
+                status: "error",
+                message: "nelprro"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "nelprro"
+        });
+    }
+};
+
+
+
+
+// controllers/fotoControlador.js
+const pruebaFoto = (req, res) => {
+    return res.status(200).send({
+        message: "Mensaje enviado joder"
+    });
+}
+
+
+//Registrar foto
+
+
+    const registrarfoto2 = async (req,res) =>{
+        //Recojer parametros por post a guardar
+
+        let parametros = req.body;
+        
+        // validar datos
+        try{
+        // Crear un objeto guardar
+        const articulo = new fotografia(parametros);
+            
+        // Guardar el articulo
+        const articuloGuardado = await articulo.save();    
+        return res.status(200).json({
+            status : "successs",
+            mensaje: "arre con el articulo",
+            articuloGuardado
+        })
+        }catch(error){
+            return res.status(400).json({
+                status : "error",
+                mensaje: "Faltan datos por enviar3",
+                parametros
+
+            })
+
+        }
+        }
+
+const subir_foto= async (req,res) =>{
+
+
+    console.log(req.file)
+
+    let archivo = req.file.originalname;
+    let archivo_split = archivo.split("\.");
+    let extension = archivo_split[1]
+
+
+    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
+        fs.unlink(req.file.path,(error)=>{
+            return res.status(500).json({
+                status:"error",
+                message:"nelprro3",
+                extension
+            })
+        })
+
+    }else{
+
+        let fotografiaID = req.params.id;
+
+        try {
+            const fotografiaActualizada = await Fotografia.findOneAndUpdate(
+                { _id: fotografiaID },
+                { image: req.file.filename },
+                { new: true }
+            );
+
+            if (!fotografiaActualizada) {
+                return res.status(500).json({
+                    status: "error",
+                    message: "nelprro2"
+                });
+            } else {
+                return res.status(200).json({
+                    status: "simon",
+                    fichero: req.file
+                });
+            }
+        } catch (error) {
+            return res.status(500).json({
+                status: "error",
+                message: "nelprro"
+            });
+        }
+
+    }
+
+} 
+const obtenerFotoPorID = async (req, res) => {
+    let fotoID = req.params.id;
+
+    try {
+        let foto = await Fotografia.findById(fotoID);
+
+        if (!foto) {
+            return res.status(404).json({
+                status: "error",
+                message: "Foto no encontrada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                foto
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener la foto"
+        });
+    }
+};
+// obtener paises
+
+const obtenerPaises = async (req, res) => {
+    try {
+        const paises = await Fotografia.aggregate([
+            {
+                $group: {
+                    _id: "$pais",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    pais: "$_id",
+                    numeroDeFotos: 1
+                }
+            }
+        ]);
+
+        if (!paises) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron países"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                paises
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los países"
+        });
+    }
+};
+const obtenerTemas = async (req, res) => {
+    try {
+        // Obtener temas y número de fotos por tema
+        const temas = await Fotografia.aggregate([
+            {
+                $group: {
+                    _id: "$tema",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    tema: "$_id",
+                    numeroDeFotos: 1
+                }
+            }
+        ]);
+
+        if (!temas.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron temas"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada tema
+        const temasConFoto = await Promise.all(temas.map(async tema => {
+            const fotoAleatoria = await Fotografia.aggregate([
+                { $match: { tema: tema.tema } },
+                { $sample: { size: 1 } }
+            ]);
+
+            return {
+                ...tema,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
+            };
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            temas: temasConFoto
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los temas"
+        });
+    }
+};
+
+const obtenerAlbumes = async (req, res) => {
+    try {
+        // Obtener álbumes y número de fotos por álbum
+        const albumes = await Fotografia.aggregate([
+            {
+                $group: {
+                    _id: "$numero_album",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    album: "$_id",
+                    numeroDeFotos: 1
+                }
+            },
+            {
+                $sort: { album: 1 } // Orden ascendente por número de álbum
+            }
+        ]);
+
+        if (!albumes.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron álbumes"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada álbum
+        const albumesConFoto = await Promise.all(albumes.map(async album => {
+            const fotoAleatoria = await Fotografia.aggregate([
+                { $match: { numero_album: album.album } },
+                { $sample: { size: 1 } }
+            ]);
+
+            return {
+                ...album,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+            };
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            albumes: albumesConFoto
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los álbumes"
+        });
+    }
+};
+
+const listarPorAlbum = async (req, res) => {
+    const albumId = req.params.id;
+    try {
+        let fotos = await Fotografia.find({ numero_album: albumId }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este álbum"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+
+
+
+
+module.exports = { pruebaFoto, registrarfoto2, subir_foto, listar, obtenerFotoPorID, obtenerPaises, obtenerTemas, obtenerAlbumes, listarPorAlbum}
