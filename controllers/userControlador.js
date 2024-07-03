@@ -1,6 +1,6 @@
 const User = require("../models/usuario");
 const jwt = require("../services/jwt")
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcryptjs")
 
 
 // Acciones de prueba
