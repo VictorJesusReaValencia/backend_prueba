@@ -28,6 +28,8 @@ router.get('/listar-paises', pruebaControlador.obtenerPaises);
 router.get('/listar-temas', pruebaControlador.obtenerTemas);
 router.get('/listar-albumes', pruebaControlador.obtenerAlbumes);
 router.get('/album/:id', pruebaControlador.listarPorAlbum);
+router.delete('/borrar-foto/:id', pruebaControlador.borrar);
+router.put('/editar-foto/:id', pruebaControlador.editar);
 
 
 module.exports = router;

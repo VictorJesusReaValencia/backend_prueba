@@ -119,6 +119,61 @@ const subir_foto= async (req,res) =>{
     }
 
 } 
+const borrar = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        let foto = await Fotografia.findOneAndDelete({ _id: id });
+
+        if (!foto) {
+            return res.status(404).json({
+                status: "error",
+                message: "Foto no encontrada",
+                id
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Foto borrada exitosamente"
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al borrar la foto"
+        });
+    }
+};
+const editar = async (req, res) => {
+    const id = req.params.id;
+    const datosActualizados = req.body;
+
+    try {
+        let foto = await Fotografia.findByIdAndUpdate(id, datosActualizados, { new: true });
+
+        if (!foto) {
+            return res.status(404).json({
+                status: "error",
+                message: "Foto no encontrada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Foto actualizada exitosamente",
+                foto
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar la foto"
+        });
+    }
+};
+
+
+
+
 const obtenerFotoPorID = async (req, res) => {
     let fotoID = req.params.id;
 
@@ -313,4 +368,11 @@ const listarPorAlbum = async (req, res) => {
 
 
 
-module.exports = { pruebaFoto, registrarfoto2, subir_foto, listar, obtenerFotoPorID, obtenerPaises, obtenerTemas, obtenerAlbumes, listarPorAlbum}
+module.exports = { pruebaFoto,
+                registrarfoto2,
+                subir_foto, 
+                listar, 
+                obtenerFotoPorID, 
+                obtenerPaises, 
+                obtenerTemas, 
+                obtenerAlbumes, listarPorAlbum, borrar, editar}
