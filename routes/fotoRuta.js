@@ -1,28 +1,36 @@
-// routes/fotoRuta.js
 const express = require('express');
-const router = express.Router();
-const pruebaControlador = require('../controllers/fotoControlador');
-const multer = require("multer")
+const multer = require('multer');
+const path = require('path');
+const Fotografia = require('../models/fotografia'); // Asegúrate de importar tu modelo Fotografia
+const pruebaControlador = require("../controllers/fotoControlador")
 
+const router = express.Router();
 
 const almacenamiento = multer.diskStorage({
-    destination: function(req,file,cb){
-        cb(null,"./imagenes/fotografias/")
-
-    },
-
-    filename: function(req,file,cb) {
-        cb(null, "fotografia" + Date.now() + file.originalname) 
-
+  destination: function(req, file, cb) {
+    cb(null, "./imagenes/fotografias/");
+  },
+  filename: async function(req, file, cb) {
+    try {
+      const fotografia = await Fotografia.findById(req.params.id); // Suponiendo que estás usando Mongoose para interactuar con MongoDB
+      if (!fotografia) {
+        return cb(new Error('Fotografia no encontrada'));
+      }
+      const extension = path.extname(file.originalname);
+      const nombreArchivo = `${fotografia.titulo}_album${fotografia.numero_album}_foto${fotografia.numero_foto}${extension}`;
+      cb(null, nombreArchivo);
+    } catch (error) {
+      cb(error);
     }
-})
+  }
+});
 
-const subidas = multer({storage: almacenamiento})
+const subidas = multer({ storage: almacenamiento });
 
 router.get('/prueba-foto', pruebaControlador.pruebaFoto);
 router.get('/listar-foto', pruebaControlador.listar);
 router.post('/registrar-foto', pruebaControlador.registrarfoto2);
-router.post('/registrar-imagen/:id',[subidas.single("file0")], pruebaControlador.subir_foto);
+router.post('/registrar-imagen/:id', [subidas.single("file0")], pruebaControlador.subir_foto);
 router.get('/foto/:id', pruebaControlador.obtenerFotoPorID);
 router.get('/listar-paises', pruebaControlador.obtenerPaises);
 router.get('/listar-temas', pruebaControlador.obtenerTemas);
@@ -30,6 +38,5 @@ router.get('/listar-albumes', pruebaControlador.obtenerAlbumes);
 router.get('/album/:id', pruebaControlador.listarPorAlbum);
 router.delete('/borrar-foto/:id', pruebaControlador.borrar);
 router.put('/editar-foto/:id', pruebaControlador.editar);
-
 
 module.exports = router;
