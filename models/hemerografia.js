@@ -59,7 +59,13 @@ const HemerografiaSchema = new Schema({
     nombre_periodico: {
       type: Number,
     },
-    fecha_publicacion: {
+    anio: {
+      type: Number,
+    },
+    mes: {
+      type: Number,
+    },
+    dia: {
       type: Number,
     },
     num_paginas: {
