@@ -2,6 +2,10 @@ const Fotografia = require("../models/fotografia");
 const fotografia = require("../models/fotografia");
 const validator = require("validator")
 const fs = require("fs")
+const { google } = require('googleapis');
+const stream = require("stream")
+const apikeys = require("../acervonervo-1b28421c4f65.json");
+const SCOPE = ["https://www.googleapis.com/auth/drive"];
 
 const listar = async (req, res) => {
     try {
@@ -25,6 +29,19 @@ const listar = async (req, res) => {
         });
     }
 };
+
+async function authorize() {
+    const jwtClient = new google.auth.JWT(
+        apikeys.client_email,
+        null,
+        apikeys.private_key,
+        SCOPE
+    );
+    
+    await jwtClient.authorize();
+    return jwtClient;
+    }
+
 // controllers/fotoControlador.js
 const pruebaFoto = (req, res) => {
     return res.status(200).send({
@@ -104,6 +121,7 @@ const subir_foto= async (req,res) =>{
     }
 
 } 
+
 const borrar = async (req, res) => {
     const id = req.params.id;
 

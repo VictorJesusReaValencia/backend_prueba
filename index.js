@@ -30,13 +30,6 @@ app.use("/api/hemerografia", HemerografiaRoutes)
 app.use('/api/fotografia', FotoRoutes);
 app.use("/api/user", userRoutes);
 
-app.get("/prueba", (req, res) => {
-    return res.status(200).json({
-        "id": 1,
-        "nombre": "robin"
-    });
-});
-
 // Arrancar el servidor
 app.listen(puerto, () => {
     console.log("Servidor de node corriendo en el puerto:", puerto);
