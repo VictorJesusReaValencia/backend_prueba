@@ -22,8 +22,11 @@ app.use('/imagenes', express.static(path.join(__dirname, 'imagenes')));
 // Importar rutas
 const FotoRoutes = require('./routes/fotoRuta');
 const userRoutes = require("./routes/userRuta");
+const HemerografiaRoutes = require("./routes/hemerografiasRuta")
 
 // Middleware para usar las rutas
+
+app.use("/api/hemerografia", HemerografiaRoutes)
 app.use('/api/fotografia', FotoRoutes);
 app.use("/api/user", userRoutes);
 

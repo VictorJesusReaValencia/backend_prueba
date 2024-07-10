@@ -25,59 +25,44 @@ const listar = async (req, res) => {
         });
     }
 };
-
-
-
-
 // controllers/fotoControlador.js
 const pruebaFoto = (req, res) => {
     return res.status(200).send({
         message: "Mensaje enviado joder"
     });
 }
-
-
 //Registrar foto
-
-
-    const registrarfoto2 = async (req,res) =>{
-        //Recojer parametros por post a guardar
-
-        let parametros = req.body;
+const registrarfoto2 = async (req,res) =>{
+    //Recojer parametros por post a guardar
+    let parametros = req.body;
+    
+    // validar datos
+    try{
+    // Crear un objeto guardar
+    const articulo = new fotografia(parametros);
         
-        // validar datos
-        try{
-        // Crear un objeto guardar
-        const articulo = new fotografia(parametros);
-            
-        // Guardar el articulo
-        const articuloGuardado = await articulo.save();    
-        return res.status(200).json({
-            status : "successs",
-            mensaje: "arre con el articulo",
-            articuloGuardado
+    // Guardar el articulo
+    const articuloGuardado = await articulo.save();    
+    return res.status(200).json({
+        status : "successs",
+        mensaje: "arre con el articulo",
+        articuloGuardado
+    })
+    }catch(error){
+        return res.status(400).json({
+            status : "error",
+            mensaje: "Faltan datos por enviar3",
+            parametros
+
         })
-        }catch(error){
-            return res.status(400).json({
-                status : "error",
-                mensaje: "Faltan datos por enviar3",
-                parametros
 
-            })
-
-        }
-        }
-
+    }
+}
 const subir_foto= async (req,res) =>{
-
-
     console.log(req.file)
-
     let archivo = req.file.originalname;
     let archivo_split = archivo.split("\.");
     let extension = archivo_split[1]
-
-
     if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
         fs.unlink(req.file.path,(error)=>{
             return res.status(500).json({
@@ -170,10 +155,6 @@ const editar = async (req, res) => {
         });
     }
 };
-
-
-
-
 const obtenerFotoPorID = async (req, res) => {
     let fotoID = req.params.id;
 
@@ -199,7 +180,6 @@ const obtenerFotoPorID = async (req, res) => {
     }
 };
 // obtener paises
-
 const obtenerPaises = async (req, res) => {
     try {
         const paises = await Fotografia.aggregate([
@@ -286,7 +266,6 @@ const obtenerTemas = async (req, res) => {
         });
     }
 };
-
 const obtenerAlbumes = async (req, res) => {
     try {
         // Obtener álbumes y número de fotos por álbum
@@ -340,7 +319,6 @@ const obtenerAlbumes = async (req, res) => {
         });
     }
 };
-
 const listarPorAlbum = async (req, res) => {
     const albumId = req.params.id;
     try {
@@ -364,9 +342,6 @@ const listarPorAlbum = async (req, res) => {
         });
     }
 };
-
-
-
 
 module.exports = { pruebaFoto,
                 registrarfoto2,
