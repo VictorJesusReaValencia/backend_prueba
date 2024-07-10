@@ -57,15 +57,15 @@ const HemerografiaSchema = new Schema({
       type: String,
     },
     nombre_periodico: {
+      type: String,
+    },
+    anio2: {
       type: Number,
     },
-    anio: {
+    mes2: {
       type: Number,
     },
-    mes: {
-      type: Number,
-    },
-    dia: {
+    dia2: {
       type: Number,
     },
     num_paginas: {
