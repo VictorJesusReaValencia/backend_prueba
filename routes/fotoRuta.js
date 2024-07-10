@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Fotografia no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const nombreArchivo = `album_${fotografia.numero_album}_foto_${fotografia.numero_foto}${extension}`;
+      const nombreArchivo = `album_${fotografia.numero_album}_foto_${fotografia.numero_foto}.${extension}`;
       cb(null, nombreArchivo);
     } catch (error) {
       cb(error);
