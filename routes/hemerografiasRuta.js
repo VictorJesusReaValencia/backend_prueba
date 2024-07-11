@@ -33,6 +33,6 @@ router.delete('/borrar/:id', HemerografiaControlador.borrarHemerografia);
 router.put('/editar/:id', HemerografiaControlador.editarHemerografia);
 router.get('/listar-temas', HemerografiaControlador.obtenerTemasHemerografia);
 router.get('/tema/:id', HemerografiaControlador.listarPorTema);
-
+router.get('/hemero/:id', HemerografiaControlador.obtenerHemerografiaPorID);
 
 module.exports = router;

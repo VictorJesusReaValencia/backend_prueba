@@ -23,9 +23,14 @@ app.use('/imagenes', express.static(path.join(__dirname, 'imagenes')));
 const FotoRoutes = require('./routes/fotoRuta');
 const userRoutes = require("./routes/userRuta");
 const HemerografiaRoutes = require("./routes/hemerografiasRuta")
-
+const IconografiafiaRoutes = require("./routes/iconografiaRuta")
+const LibrosRoutes = require("./routes/libroRuta")
+const CorrespondenciaRoutes = require("./routes/correspondenciaRuta")
 // Middleware para usar las rutas
 
+app.use("/api/correspondencia", CorrespondenciaRoutes)
+app.use("/api/libros", LibrosRoutes)
+app.use("/api/iconografia", IconografiafiaRoutes)
 app.use("/api/hemerografia", HemerografiaRoutes)
 app.use('/api/fotografia', FotoRoutes);
 app.use("/api/user", userRoutes);

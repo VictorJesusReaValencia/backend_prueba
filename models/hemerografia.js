@@ -107,6 +107,9 @@ const HemerografiaSchema = new Schema({
     transcripcion: {
         type: String,
     },
+    drive_id: {
+      type: String,
+    },
   });
 
 

@@ -198,6 +198,30 @@ const listarPorTema = async (req, res) => {
         });
     }
 };
+const obtenerHemerografiaPorID = async (req, res) => {
+    let hemeroID = req.params.id;
+
+    try {
+        let hemero= await hemerografia.findById(hemeroID);
+
+        if (!hemero) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                hemero
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener la hemerografía"
+        });
+    }
+};
 module.exports={
     pruebaHemerografia,
     registrarHemerografia,
@@ -205,6 +229,7 @@ module.exports={
     borrarHemerografia,
     editarHemerografia,
     obtenerTemasHemerografia,
-    listarPorTema
+    listarPorTema,
+    obtenerHemerografiaPorID
 }
 
