@@ -28,52 +28,61 @@ const registrarHemerografia = async (req,res) =>{
         })
     }
 }
-const cargarFotografia= async (req,res) =>{
-    console.log(req.file)
-    let archivo = req.file.originalname;
-    let archivo_split = archivo.split("\.");
-    let extension = archivo_split[1]
-    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
-        fs.unlink(req.file.path,(error)=>{
-            return res.status(500).json({
-                status:"error",
-                message:"nelprro3",
-                extension
-            })
-        })
+const cargarFotografia = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let hemerografiaId = req.params.id;
 
-    }else{
-
-        let hemerografiaId = req.params.id;
-
-        try {
-            const hemerografiaActualizada = await hemerografia.findOneAndUpdate(
-                { _id: hemerografiaId },
-                { image: req.file.filename },
-                { new: true }
-            );
-
-            if (!hemerografiaActualizada) {
+    // Validar extensiones de archivos
+    for (let archivo of archivos) {
+        let archivo_split = archivo.originalname.split(".");
+        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
+            fs.unlink(archivo.path, (error) => {
+                // Borrar todos los archivos en caso de error de validación
+                for (let file of archivos) {
+                    fs.unlink(file.path, () => {});
+                }
                 return res.status(500).json({
                     status: "error",
-                    message: "nelprro2"
+                    message: "Extensión de archivo no permitida",
+                    extension
                 });
-            } else {
-                return res.status(200).json({
-                    status: "simon",
-                    fichero: req.file
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "nelprro"
             });
+            return;
         }
-
     }
 
-} 
+    try {
+        const hemerografiaActualizada = await hemerografia.findOneAndUpdate(
+            { _id: hemerografiaId },
+            { $push: { images: { $each: archivos.map(file => file.filename) } } }, // Asumiendo que tienes un campo 'images' en tu modelo que es un array
+            { new: true }
+        );
+
+        if (!hemerografiaActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: req.files
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 const borrarHemerografia = async (req, res) => {
     const id = req.params.id;
 

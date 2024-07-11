@@ -9,9 +9,9 @@ const HemerografiaSchema = new Schema({
     autor: {
       type: String,
     },
-    image: {
-      type: String,
-      default: "default.jpg"
+    images: { // Cambiado de 'image' a 'images' y ahora es un array de strings
+      type: [String],
+      default: ["default.jpg"]
     },
     pais: {
       type: String,
