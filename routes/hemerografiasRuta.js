@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Hemerografia no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Hemerografia,${hemerografia.nombre_periodico},${hemerografia.numero_registro}`;
+      const baseNombreArchivo = `Hemerografia,${hemerografia.nombre_periodico},${hemerografia.encabezado}_${hemerografia.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/hemerografia');
