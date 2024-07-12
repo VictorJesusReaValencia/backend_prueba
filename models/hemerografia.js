@@ -11,7 +11,6 @@ const HemerografiaSchema = new Schema({
     },
     images: { // Cambiado de 'image' a 'images' y ahora es un array de strings
       type: [String],
-      default: ["default.jpg"]
     },
     pais: {
       type: String,
