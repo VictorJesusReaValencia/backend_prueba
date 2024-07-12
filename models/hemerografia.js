@@ -26,8 +26,11 @@ const HemerografiaSchema = new Schema({
     ubicacion_fisica: {
       type: String,
     },
-    anio: {
-      type: Number,
+    fecha_publicacion: {
+      type: Date,
+    },
+    lugar_publicacion: {
+      type: String,
     },
     mes: {
       type: Number,
@@ -67,13 +70,13 @@ const HemerografiaSchema = new Schema({
     dia2: {
       type: Number,
     },
-    num_paginas: {
+    numero_paginas: {
       type: String,
     },
-    num_edicion: {
+    numero_edicion: {
       type: String,
     },
-    num_publicacion: {
+    numero_publicacion: {
         type: String,
     },
     genero_periodistico: {
@@ -82,7 +85,7 @@ const HemerografiaSchema = new Schema({
     literarios: {
         type: String,
     },
-    seudonimo: {
+    seudonimos: {
         type: String,
       },
     encabezado: {
@@ -97,7 +100,7 @@ const HemerografiaSchema = new Schema({
     colaboradores: {
         type: String,
     },
-    tipo_publicacion: {
+    periodicidad: {
         type: String,
     },
     resumen:{
@@ -106,6 +109,10 @@ const HemerografiaSchema = new Schema({
     transcripcion: {
         type: String,
     },
+    
+    numero_registro: {
+      type: Number,
+  },
     drive_id: {
       type: String,
     },
