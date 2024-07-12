@@ -4,7 +4,6 @@ const { Schema, model} = require("mongoose")
 const HemerografiaSchema = new Schema({
     titulo: {
       type: String,
-      required: true,
     },
     autor: {
       type: String,
@@ -60,15 +59,6 @@ const HemerografiaSchema = new Schema({
     },
     nombre_periodico: {
       type: String,
-    },
-    anio2: {
-      type: Number,
-    },
-    mes2: {
-      type: Number,
-    },
-    dia2: {
-      type: Number,
     },
     numero_paginas: {
       type: String,
