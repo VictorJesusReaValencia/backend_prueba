@@ -56,7 +56,15 @@ const cargarFotografia = async (req, res) => {
     try {
         const hemerografiaActualizada = await hemerografia.findOneAndUpdate(
             { _id: hemerografiaId },
-            { $push: { images: { $each: archivos.map(file => file.filename) } } }, // Asumiendo que tienes un campo 'images' en tu modelo que es un array
+            {
+                $push: {
+                    images: {
+                        $each: archivos.map(file => ({
+                            nombre: file.filename
+                        }))
+                    }
+                }
+            },
             { new: true }
         );
 
