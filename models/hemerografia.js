@@ -8,9 +8,18 @@ const HemerografiaSchema = new Schema({
     autor: {
       type: String,
     },
-    images: { // Cambiado de 'image' a 'images' y ahora es un array de strings
-      type: [String],
-    },
+    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+      {
+        nombre: {
+          type: String,
+          required: true,
+        },
+        fileId: {
+          type: String,
+          required: true,
+        }
+      }
+    ],
     pais: {
       type: String,
       required: true
