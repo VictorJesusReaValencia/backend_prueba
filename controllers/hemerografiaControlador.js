@@ -57,12 +57,10 @@ const cargarFotografia = async (req, res) => {
         const hemerografiaActualizada = await hemerografia.findOneAndUpdate(
             { _id: hemerografiaId },
             {
-                $push: {
-                    images: {
-                        $each: archivos.map(file => ({
-                            nombre: file.filename
-                        }))
-                    }
+                $set: {
+                    images: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
                 }
             },
             { new: true }
