@@ -166,22 +166,25 @@ const obtenerTemasIconografia = async (req, res) => {
             });
         }
 
-        // Obtener una foto aleatoria por cada tema
-        const temasConFoto = await Promise.all(temas.map(async tema => {
-            const fotoAleatoria = await iconografia.aggregate([
+        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const libroAleatorio = await iconografia.aggregate([
                 { $match: { tema: tema.tema } },
                 { $sample: { size: 1 } }
             ]);
 
+            const nombreImagen = libroAleatorio[0]?.images?.length > 0 ? libroAleatorio[0].images[0].nombre : null;
+
             return {
                 ...tema,
-                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
+                fotoAleatoria: libroAleatorio[0] ? libroAleatorio[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+                nombreImagen: nombreImagen
             };
         }));
 
         return res.status(200).json({
             status: "success",
-            temas: temasConFoto
+            temas: temasConFotoYNombre
         });
     } catch (error) {
         return res.status(500).json({
