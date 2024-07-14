@@ -93,9 +93,9 @@ const borrarIconografia = async (req, res) => {
     const id = req.params.id;
 
     try {
-        let hemero = await iconografia.findOneAndDelete({ _id: id });
+        let icon = await iconografia.findOneAndDelete({ _id: id });
 
-        if (!hemero) {
+        if (!icon) {
             return res.status(404).json({
                 status: "error",
                 message: "Hemerografía no encontrada",
@@ -119,9 +119,9 @@ const editarIconografia = async (req, res) => {
     const datosActualizados = req.body;
 
     try {
-        let hemero = await iconografia.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let icon = await iconografia.findByIdAndUpdate(id, datosActualizados, { new: true });
 
-        if (!hemero) {
+        if (!icon) {
             return res.status(404).json({
                 status: "error",
                 message: "Foto no encontrada"
@@ -130,7 +130,7 @@ const editarIconografia = async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 message: "Foto actualizada exitosamente",
-                hemero
+                icon
             });
         }
     } catch (error) {
@@ -220,9 +220,9 @@ const obtenerIconografiaPorID = async (req, res) => {
     let hemeroID = req.params.id;
 
     try {
-        let hemero= await iconografia.findById(hemeroID);
+        let icon= await iconografia.findById(hemeroID);
 
-        if (!hemero) {
+        if (!icon) {
             return res.status(404).json({
                 status: "error",
                 message: "Hemerografía no encontrada"
@@ -230,7 +230,7 @@ const obtenerIconografiaPorID = async (req, res) => {
         } else {
             return res.status(200).json({
                 status: "success",
-                hemero
+                icon
             });
         }
     } catch (error) {

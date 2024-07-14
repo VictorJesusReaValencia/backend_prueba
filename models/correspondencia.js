@@ -8,10 +8,18 @@ const CorrespondenciaSchema = new Schema({
     autor: {
         type: String,
     },
-    image: {
-        type: String,
-        default: "default.jpg"
-    },
+    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+        {
+          nombre: {
+            type: String,
+            required: true,
+          },
+          fileId: {
+            type: String,
+            required: true,
+          }
+        }
+      ],
     pais: {
         type: String,
         required: true
@@ -26,14 +34,8 @@ const CorrespondenciaSchema = new Schema({
     ubicacion_fisica: {
         type: String,
     },
-    anio: {
-        type: Number,
-    },
-    mes: {
-        type: Number,
-    },
-    dia: {
-        type: Number,
+    fecha: {
+        type: Date,
     },
     fecha_adquisicion: {
         type: Number,
@@ -55,8 +57,8 @@ const CorrespondenciaSchema = new Schema({
     tema: {
         type: String,
     },
-    drive_id: {
-        type: String,
+    numero_registro: {
+        type: Number,
     },
     // Campos adicionales
     tipo_correspondencia: {
@@ -81,9 +83,6 @@ const CorrespondenciaSchema = new Schema({
         type: String,
     },
     medio_envio: {
-        type: String,
-    },
-    tecnica_impresion: {
         type: String,
     },
     asunto: {
