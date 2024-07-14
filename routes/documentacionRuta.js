@@ -1,0 +1,48 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const Documentacion = require('../models/documentacion'); // Asegúrate de importar tu modelo Documentacion
+const DocumentacionControlador = require("../controllers/documentacionControlador");
+const router = express.Router();
+const fs = require('fs');
+
+const almacenamiento = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./imagenes/documentacion");
+  },
+  filename: async function (req, file, cb) {
+    try {
+      const documentacion = await Documentacion.findById(req.params.id);
+      if (!documentacion) {
+        return cb(new Error('Documentacion no encontrada'));
+      }
+      const extension = path.extname(file.originalname);
+      const baseNombreArchivo = `Documentacion_${documentacion.numero_registro}`;
+
+      // Obtener el conteo de archivos existentes en la carpeta
+      const files = fs.readdirSync('./imagenes/documentacion');
+      const matchingFiles = files.filter(f => f.startsWith(baseNombreArchivo));
+
+      // Contar archivos coincidentes para determinar el próximo número
+      const nextNumber = matchingFiles.length + 1;
+
+      const nombreArchivo = `${baseNombreArchivo}_${nextNumber}${extension}`;
+      cb(null, nombreArchivo);
+    } catch (error) {
+      cb(error);
+    }
+  }
+});
+
+const subidas = multer({ storage: almacenamiento });
+
+router.get('/prueba-documentacion', DocumentacionControlador.pruebaDocumentacion);
+router.post("/registrar", DocumentacionControlador.registrarDocumentacion);
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], DocumentacionControlador.cargarFotografia); // Permite hasta 10 archivos
+router.delete('/borrar/:id', DocumentacionControlador.borrarDocumentacion);
+router.put('/editar/:id', DocumentacionControlador.editarDocumentacion);
+router.get('/listar-temas', DocumentacionControlador.obtenerTemasDocumentacion);
+router.get('/tema/:id', DocumentacionControlador.listarPorTema);
+router.get('/:id', DocumentacionControlador.obtenerDocumentacionPorID);
+
+module.exports = router;

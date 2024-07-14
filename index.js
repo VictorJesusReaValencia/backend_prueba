@@ -26,9 +26,10 @@ const HemerografiaRoutes = require("./routes/hemerografiasRuta")
 const IconografiafiaRoutes = require("./routes/iconografiaRuta")
 const LibrosRoutes = require("./routes/libroRuta")
 const CorrespondenciaRoutes = require("./routes/correspondenciaRuta")
+const DocumentacionRoutes = require("./routes/documentacionRuta")
 
 // Middleware para usar las rutas
-
+app.use("/api/documentacion", DocumentacionRoutes)
 app.use("/api/correspondencia", CorrespondenciaRoutes)
 app.use("/api/libros", LibrosRoutes)
 app.use("/api/iconografia", IconografiafiaRoutes)
