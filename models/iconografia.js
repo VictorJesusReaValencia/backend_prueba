@@ -8,10 +8,18 @@ const IconografiaSchema = new Schema({
     autor: {
         type: String,
     },
-    image: {
-        type: String,
-        default: "default.jpg"
-    },
+    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+        {
+          nombre: {
+            type: String,
+            required: true,
+          },
+          fileId: {
+            type: String,
+            required: true,
+          }
+        }
+      ],
     pais: {
         type: String,
         required: true
@@ -26,14 +34,8 @@ const IconografiaSchema = new Schema({
     ubicacion_fisica: {
         type: String,
     },
-    anio: {
-        type: Number,
-    },
-    mes: {
-        type: Number,
-    },
-    dia: {
-        type: Number,
+    fecha: {
+        type: Date,
     },
     fecha_adquisicion: {
         type: Number,
@@ -58,7 +60,10 @@ const IconografiaSchema = new Schema({
     tipo_iconografia: {
         type: String,
     },
-    medidas: {
+    ancho: {
+        type: String,
+    },
+    alto: {
         type: String,
     },
     tecnica: {
@@ -79,8 +84,8 @@ const IconografiaSchema = new Schema({
     descripcion_contexto: {
         type: String,
     },
-    drive_id: {
-        type: String,
+    numero_registro: {
+        type: Number,
     }
 });
 

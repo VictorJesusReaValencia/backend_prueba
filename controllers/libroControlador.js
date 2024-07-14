@@ -1,22 +1,22 @@
-const libro = require("../models/libros")
+const libros = require("../models/libros")
 const validator = require("validator")
 const fs = require("fs")
 
-const pruebaLibro = (req, res) => {
+const pruebaLibros = (req, res) => {
     return res.status(200).send({
         message: "Mensaje de prueba enviado"
     });
 }
-const registrarLibro = async (req,res) =>{
+const registrarLibros = async (req,res) =>{
     //Recojer parametros por post a guardar
     let parametros = req.body;
 
     try{
-        const publicacion = new libro(parametros)
+        const publicacion = new libros(parametros)
         const publicacionGuardada = await publicacion.save()
         return res.status(200).json({
             status : "successs",
-            mensaje: "Libros guardada correctamente",
+            mensaje: "publicacion periodica guardada correctamente",
             publicacionGuardada
         })
 
@@ -28,83 +28,98 @@ const registrarLibro = async (req,res) =>{
         })
     }
 }
-const cargarFotografia= async (req,res) =>{
-    console.log(req.file)
-    let archivo = req.file.originalname;
-    let archivo_split = archivo.split("\.");
-    let extension = archivo_split[1]
-    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
-        fs.unlink(req.file.path,(error)=>{
-            return res.status(500).json({
-                status:"error",
-                message:"nelprro3",
-                extension
-            })
-        })
+const cargarFotografia = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let librosId = req.params.id;
 
-    }else{
-
-        let libroId = req.params.id;
-
-        try {
-            const libroActualizada = await libro.findOneAndUpdate(
-                { _id: libroId },
-                { image: req.file.filename },
-                { new: true }
-            );
-
-            if (!libroActualizada) {
+    // Validar extensiones de archivos
+    for (let archivo of archivos) {
+        let archivo_split = archivo.originalname.split(".");
+        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
+            fs.unlink(archivo.path, (error) => {
+                // Borrar todos los archivos en caso de error de validación
+                for (let file of archivos) {
+                    fs.unlink(file.path, () => {});
+                }
                 return res.status(500).json({
                     status: "error",
-                    message: "nelprro2"
+                    message: "Extensión de archivo no permitida",
+                    extension
                 });
-            } else {
-                return res.status(200).json({
-                    status: "simon",
-                    fichero: req.file
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "nelprro"
             });
+            return;
         }
-
     }
 
-} 
-const borrarLibro = async (req, res) => {
+    try {
+        const librosActualizada = await libros.findOneAndUpdate(
+            { _id: librosId },
+            {
+                $set: {
+                    images: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!librosActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: req.files
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
+const borrarLibros = async (req, res) => {
     const id = req.params.id;
 
     try {
-        let hemero = await libro.findOneAndDelete({ _id: id });
+        let hemero = await libros.findOneAndDelete({ _id: id });
 
         if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Libros no encontrada",
+                message: "Hemerografía no encontrada",
                 id
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                message: "Libros borrada exitosamente"
+                message: "Hemerografía borrada exitosamente"
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al borrar la Libros"
+            message: "Error al borrar la Hemerografía"
         });
     }
 };
-const editarLibro = async (req, res) => {
+const editarLibros = async (req, res) => {
     const id = req.params.id;
     const datosActualizados = req.body;
 
     try {
-        let hemero = await libro.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let hemero = await libros.findByIdAndUpdate(id, datosActualizados, { new: true });
 
         if (!hemero) {
             return res.status(404).json({
@@ -125,10 +140,10 @@ const editarLibro = async (req, res) => {
         });
     }
 };
-const obtenerTemasLibro = async (req, res) => {
+const obtenerTemasLibros = async (req, res) => {
     try {
         // Obtener temas y número de fotos por tema
-        const temas = await libro.aggregate([
+        const temas = await libros.aggregate([
             {
                 $group: {
                     _id: "$tema",
@@ -153,7 +168,7 @@ const obtenerTemasLibro = async (req, res) => {
 
         // Obtener una foto aleatoria por cada tema
         const temasConFoto = await Promise.all(temas.map(async tema => {
-            const fotoAleatoria = await libro.aggregate([
+            const fotoAleatoria = await libros.aggregate([
                 { $match: { tema: tema.tema } },
                 { $sample: { size: 1 } }
             ]);
@@ -178,7 +193,7 @@ const obtenerTemasLibro = async (req, res) => {
 const listarPorTema = async (req, res) => {
     const tema = req.params.id;
     try {
-        let fotos = await libro.find({ tema: tema }).sort({ numero_foto: 1 });
+        let fotos = await libros.find({ tema: tema }).sort({ numero_foto: 1 });
 
         if (!fotos || fotos.length === 0) {
             return res.status(404).json({
@@ -198,38 +213,38 @@ const listarPorTema = async (req, res) => {
         });
     }
 };
-const obtenerLibroPorID = async (req, res) => {
-    let iconID = req.params.id;
+const obtenerLibrosPorID = async (req, res) => {
+    let hemeroID = req.params.id;
 
     try {
-        let icon= await libro.findById(iconID);
+        let hemero= await libros.findById(hemeroID);
 
-        if (!icon) {
+        if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Libros no encontrada"
+                message: "Hemerografía no encontrada"
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                icon
+                hemero
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener la Libros"
+            message: "Error al obtener la hemerografía"
         });
     }
 };
 module.exports={
-    pruebaLibro,
-    registrarLibro,
+    pruebaLibros,
+    registrarLibros,
     cargarFotografia,
-    borrarLibro,
-    editarLibro,
-    obtenerTemasLibro,
+    borrarLibros,
+    editarLibros,
+    obtenerTemasLibros,
     listarPorTema,
-    obtenerLibroPorID
+    obtenerLibrosPorID
 }
 

@@ -16,7 +16,7 @@ const registrarIconografia = async (req,res) =>{
         const publicacionGuardada = await publicacion.save()
         return res.status(200).json({
             status : "successs",
-            mensaje: "Iconografía guardada correctamente",
+            mensaje: "publicacion periodica guardada correctamente",
             publicacionGuardada
         })
 
@@ -28,52 +28,67 @@ const registrarIconografia = async (req,res) =>{
         })
     }
 }
-const cargarFotografia= async (req,res) =>{
-    console.log(req.file)
-    let archivo = req.file.originalname;
-    let archivo_split = archivo.split("\.");
-    let extension = archivo_split[1]
-    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
-        fs.unlink(req.file.path,(error)=>{
-            return res.status(500).json({
-                status:"error",
-                message:"nelprro3",
-                extension
-            })
-        })
+const cargarFotografia = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let iconografiaId = req.params.id;
 
-    }else{
-
-        let iconografiaId = req.params.id;
-
-        try {
-            const iconografiaActualizada = await iconografia.findOneAndUpdate(
-                { _id: iconografiaId },
-                { image: req.file.filename },
-                { new: true }
-            );
-
-            if (!iconografiaActualizada) {
+    // Validar extensiones de archivos
+    for (let archivo of archivos) {
+        let archivo_split = archivo.originalname.split(".");
+        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
+            fs.unlink(archivo.path, (error) => {
+                // Borrar todos los archivos en caso de error de validación
+                for (let file of archivos) {
+                    fs.unlink(file.path, () => {});
+                }
                 return res.status(500).json({
                     status: "error",
-                    message: "nelprro2"
+                    message: "Extensión de archivo no permitida",
+                    extension
                 });
-            } else {
-                return res.status(200).json({
-                    status: "simon",
-                    fichero: req.file
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "nelprro"
             });
+            return;
         }
-
     }
 
-} 
+    try {
+        const iconografiaActualizada = await iconografia.findOneAndUpdate(
+            { _id: iconografiaId },
+            {
+                $set: {
+                    images: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!iconografiaActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: req.files
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 const borrarIconografia = async (req, res) => {
     const id = req.params.id;
 
@@ -83,19 +98,19 @@ const borrarIconografia = async (req, res) => {
         if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Iconografía no encontrada",
+                message: "Hemerografía no encontrada",
                 id
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                message: "Iconografía borrada exitosamente"
+                message: "Hemerografía borrada exitosamente"
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al borrar la Iconografía"
+            message: "Error al borrar la Hemerografía"
         });
     }
 };
@@ -199,26 +214,26 @@ const listarPorTema = async (req, res) => {
     }
 };
 const obtenerIconografiaPorID = async (req, res) => {
-    let iconID = req.params.id;
+    let hemeroID = req.params.id;
 
     try {
-        let icon= await iconografia.findById(iconID);
+        let hemero= await iconografia.findById(hemeroID);
 
-        if (!icon) {
+        if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Iconografía no encontrada"
+                message: "Hemerografía no encontrada"
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                icon
+                hemero
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener la Iconografía"
+            message: "Error al obtener la hemerografía"
         });
     }
 };

@@ -8,10 +8,18 @@ const LibrosSchema = new Schema({
     autor: {
         type: String,
     },
-    image: {
-        type: String,
-        default: "default.jpg"
-    },
+    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+        {
+          nombre: {
+            type: String,
+            required: true,
+          },
+          fileId: {
+            type: String,
+            required: true,
+          }
+        }
+      ],
     pais: {
         type: String,
         required: true
@@ -25,15 +33,6 @@ const LibrosSchema = new Schema({
     },
     ubicacion_fisica: {
         type: String,
-    },
-    anio: {
-        type: Number,
-    },
-    mes: {
-        type: Number,
-    },
-    dia: {
-        type: Number,
     },
     fecha_adquisicion: {
         type: Number,
@@ -55,8 +54,8 @@ const LibrosSchema = new Schema({
     tema: {
         type: String,
     },
-    drive_id: {
-        type: String,
+    numero_registro: {
+        type: Number,
     },
     // Campos adicionales
     ISBN: {
@@ -68,22 +67,23 @@ const LibrosSchema = new Schema({
     imprenta: {
         type: String,
     },
-    edicion: {
+    numero_edicion: {
+        type: Number,
+    },
+    numero_paginas: {
+        type: Number,
+    },
+    
+    lugar_publicacion: {
+        type: String,
+    },
+    lugar_edicion: {
         type: String,
     },
     prologo: {
         type: String,
     },
     compiladores: {
-        type: String,
-    },
-    numero_paginas: {
-        type: Number,
-    },
-    lugar_publicacion: {
-        type: String,
-    },
-    lugar_edicion: {
         type: String,
     },
     fecha_publicacion: {
@@ -113,7 +113,7 @@ const LibrosSchema = new Schema({
     relacion_autor: {
         type: String,
     },
-    premios_reconocimientos: {
+    premios: {
         type: String,
     },
     citas_relevantes: {
