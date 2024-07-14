@@ -93,9 +93,9 @@ const borrarLibros = async (req, res) => {
     const id = req.params.id;
 
     try {
-        let hemero = await libros.findOneAndDelete({ _id: id });
+        let libro = await libros.findOneAndDelete({ _id: id });
 
-        if (!hemero) {
+        if (!libro) {
             return res.status(404).json({
                 status: "error",
                 message: "Hemerografía no encontrada",
@@ -119,9 +119,9 @@ const editarLibros = async (req, res) => {
     const datosActualizados = req.body;
 
     try {
-        let hemero = await libros.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let libro = await libros.findByIdAndUpdate(id, datosActualizados, { new: true });
 
-        if (!hemero) {
+        if (!libro) {
             return res.status(404).json({
                 status: "error",
                 message: "Foto no encontrada"
@@ -130,7 +130,7 @@ const editarLibros = async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 message: "Foto actualizada exitosamente",
-                hemero
+                libro
             });
         }
     } catch (error) {
@@ -217,9 +217,9 @@ const obtenerLibrosPorID = async (req, res) => {
     let hemeroID = req.params.id;
 
     try {
-        let hemero= await libros.findById(hemeroID);
+        let libro= await libros.findById(hemeroID);
 
-        if (!hemero) {
+        if (!libro) {
             return res.status(404).json({
                 status: "error",
                 message: "Hemerografía no encontrada"
@@ -227,7 +227,7 @@ const obtenerLibrosPorID = async (req, res) => {
         } else {
             return res.status(200).json({
                 status: "success",
-                hemero
+                libro
             });
         }
     } catch (error) {
