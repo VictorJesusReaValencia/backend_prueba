@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Libros no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Libros,${libros.editorial},${libros.encabezado}_${libros.numero_registro}`;
+      const baseNombreArchivo = `Libros,${libros.editorial},${libros.titulo}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/libro');
