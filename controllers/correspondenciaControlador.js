@@ -16,7 +16,7 @@ const registrarCorrespondencia = async (req,res) =>{
         const publicacionGuardada = await publicacion.save()
         return res.status(200).json({
             status : "successs",
-            mensaje: "Correspondencias guardada correctamente",
+            mensaje: "publicacion periodica guardada correctamente",
             publicacionGuardada
         })
 
@@ -28,74 +28,89 @@ const registrarCorrespondencia = async (req,res) =>{
         })
     }
 }
-const cargarFotografia= async (req,res) =>{
-    console.log(req.file)
-    let archivo = req.file.originalname;
-    let archivo_split = archivo.split("\.");
-    let extension = archivo_split[1]
-    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
-        fs.unlink(req.file.path,(error)=>{
-            return res.status(500).json({
-                status:"error",
-                message:"nelprro3",
-                extension
-            })
-        })
+const cargarFotografia = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let correspondenciaId = req.params.id;
 
-    }else{
-
-        let correspondenciaId = req.params.id;
-
-        try {
-            const correspondenciaActualizada = await correspondencia.findOneAndUpdate(
-                { _id: correspondenciaId },
-                { image: req.file.filename },
-                { new: true }
-            );
-
-            if (!correspondenciaActualizada) {
+    // Validar extensiones de archivos
+    for (let archivo of archivos) {
+        let archivo_split = archivo.originalname.split(".");
+        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
+            fs.unlink(archivo.path, (error) => {
+                // Borrar todos los archivos en caso de error de validación
+                for (let file of archivos) {
+                    fs.unlink(file.path, () => {});
+                }
                 return res.status(500).json({
                     status: "error",
-                    message: "nelprro2"
+                    message: "Extensión de archivo no permitida",
+                    extension
                 });
-            } else {
-                return res.status(200).json({
-                    status: "simon",
-                    fichero: req.file
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "nelprro"
             });
+            return;
         }
-
     }
 
-} 
+    try {
+        const correspondenciaActualizada = await correspondencia.findOneAndUpdate(
+            { _id: correspondenciaId },
+            {
+                $set: {
+                    images: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!correspondenciaActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: req.files
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 const borrarCorrespondencia = async (req, res) => {
     const id = req.params.id;
 
     try {
-        let hemero = await correspondencia.findOneAndDelete({ _id: id });
+        let Corresp = await correspondencia.findOneAndDelete({ _id: id });
 
-        if (!hemero) {
+        if (!Corresp) {
             return res.status(404).json({
                 status: "error",
-                message: "Correspondencias no encontrada",
+                message: "Hemerografía no encontrada",
                 id
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                message: "Correspondencias borrada exitosamente"
+                message: "Hemerografía borrada exitosamente"
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al borrar la Correspondencias"
+            message: "Error al borrar la Hemerografía"
         });
     }
 };
@@ -104,9 +119,9 @@ const editarCorrespondencia = async (req, res) => {
     const datosActualizados = req.body;
 
     try {
-        let hemero = await correspondencia.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let Corresp = await correspondencia.findByIdAndUpdate(id, datosActualizados, { new: true });
 
-        if (!hemero) {
+        if (!Corresp) {
             return res.status(404).json({
                 status: "error",
                 message: "Foto no encontrada"
@@ -115,7 +130,7 @@ const editarCorrespondencia = async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 message: "Foto actualizada exitosamente",
-                hemero
+                Corresp
             });
         }
     } catch (error) {
@@ -151,22 +166,25 @@ const obtenerTemasCorrespondencia = async (req, res) => {
             });
         }
 
-        // Obtener una foto aleatoria por cada tema
-        const temasConFoto = await Promise.all(temas.map(async tema => {
-            const fotoAleatoria = await correspondencia.aggregate([
+        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const libroAleatorio = await correspondencia.aggregate([
                 { $match: { tema: tema.tema } },
                 { $sample: { size: 1 } }
             ]);
 
+            const nombreImagen = libroAleatorio[0]?.images?.length > 0 ? libroAleatorio[0].images[0].nombre : null;
+
             return {
                 ...tema,
-                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
+                fotoAleatoria: libroAleatorio[0] ? libroAleatorio[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+                nombreImagen: nombreImagen
             };
         }));
 
         return res.status(200).json({
             status: "success",
-            temas: temasConFoto
+            temas: temasConFotoYNombre
         });
     } catch (error) {
         return res.status(500).json({
@@ -199,26 +217,26 @@ const listarPorTema = async (req, res) => {
     }
 };
 const obtenerCorrespondenciaPorID = async (req, res) => {
-    let iconID = req.params.id;
+    let hemeroID = req.params.id;
 
     try {
-        let icon= await correspondencia.findById(iconID);
+        let Corresp= await correspondencia.findById(hemeroID);
 
-        if (!icon) {
+        if (!Corresp) {
             return res.status(404).json({
                 status: "error",
-                message: "Correspondencias no encontrada"
+                message: "Hemerografía no encontrada"
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                icon
+                Corresp
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener la Correspondencias"
+            message: "Error al obtener la hemerografía"
         });
     }
 };
