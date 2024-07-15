@@ -27,9 +27,15 @@ const IconografiafiaRoutes = require("./routes/iconografiaRuta")
 const LibrosRoutes = require("./routes/libroRuta")
 const CorrespondenciaRoutes = require("./routes/correspondenciaRuta")
 const DocumentacionRoutes = require("./routes/documentacionRuta")
-
+const PartiturasRoutes = require("./routes/partiturasRuta")
+const ObjetosRoutes = require("./routes/objetosRuta")
+const MonumentosRoutes = require("./routes/monumentosRuta")
 // Middleware para usar las rutas
+
 app.use("/api/documentacion", DocumentacionRoutes)
+app.use("/api/monumentos", MonumentosRoutes)
+app.use("/api/objetos", ObjetosRoutes)
+app.use("/api/partituras", PartiturasRoutes)
 app.use("/api/correspondencia", CorrespondenciaRoutes)
 app.use("/api/libros", LibrosRoutes)
 app.use("/api/iconografia", IconografiafiaRoutes)
