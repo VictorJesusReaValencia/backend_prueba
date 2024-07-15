@@ -112,7 +112,7 @@ const HemerografiaSchema = new Schema({
     numero_registro: {
       type: Number,
   },
-    drive_id: {
+    pendiente: {
       type: String,
     },
   });
