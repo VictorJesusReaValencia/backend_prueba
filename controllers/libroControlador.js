@@ -1,6 +1,7 @@
 const libros = require("../models/libros")
 const validator = require("validator")
 const fs = require("fs")
+const path = require('path');
 
 const pruebaLibros = (req, res) => {
     return res.status(200).send({
@@ -241,6 +242,87 @@ const obtenerLibrosPorID = async (req, res) => {
         });
     }
 };
+const guardarPDF = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let librosId = req.params.id;
+
+    try {
+        // Obtener título desde la base de datos
+        const libro = await libros.findById(librosId);
+        if (!libro) {
+            return res.status(404).json({
+                status: "error",
+                message: "Libro no encontrado"
+            });
+        }
+        let titulo = libro.titulo; // Asumiendo que el título está en el campo 'titulo' del documento
+
+        // Validar extensiones de archivos
+        for (let archivo of archivos) {
+            let archivo_split = archivo.originalname.split(".");
+            let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+            if (extension !== "pdf") {
+                fs.unlink(archivo.path, (error) => {
+                    // Borrar todos los archivos en caso de error de validación
+                    for (let file of archivos) {
+                        fs.unlink(file.path, () => {});
+                    }
+                    return res.status(500).json({
+                        status: "error",
+                        message: "Extensión de archivo no permitida",
+                        extension
+                    });
+                });
+                return;
+            }
+        }
+
+        // Renombrar y mover archivos
+        for (let archivo of archivos) {
+            let nuevoNombre = `${titulo}_${numero_registro}.${archivo.originalname.split('.').pop()}`;
+            let nuevaRuta = path.join(__dirname, '../imagenes/libros/pdf', nuevoNombre);
+
+            fs.renameSync(archivo.path, nuevaRuta);
+            archivo.filename = nuevoNombre;
+        }
+
+        const librosActualizada = await libros.findOneAndUpdate(
+            { _id: librosId },
+            {
+                $set: {
+                    pdfs: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!librosActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: archivos.map(file => ({ nombre: file.filename }))
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
+
 module.exports={
     pruebaLibros,
     registrarLibros,
@@ -249,6 +331,7 @@ module.exports={
     editarLibros,
     obtenerTemasLibros,
     listarPorTema,
-    obtenerLibrosPorID
+    obtenerLibrosPorID,
+    guardarPDF
 }
 
