@@ -280,7 +280,7 @@ const guardarPDF = async (req, res) => {
 
         // Renombrar y mover archivos
         for (let archivo of archivos) {
-            let nuevoNombre = `${titulo}_${numero_registro}.${archivo.originalname.split('.').pop()}`;
+            let nuevoNombre = `${titulo}.${archivo.originalname.split('.').pop()}`;
             let nuevaRuta = path.join(__dirname, '../imagenes/libros/pdf', nuevoNombre);
 
             fs.renameSync(archivo.path, nuevaRuta);
