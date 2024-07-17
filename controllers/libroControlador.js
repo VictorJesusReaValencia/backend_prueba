@@ -258,6 +258,7 @@ const guardarPDF = async (req, res) => {
         }
         let titulo = libro.titulo; // Asumiendo que el título está en el campo 'titulo' del documento
 
+        console.log("se encuentra el libro")
         // Validar extensiones de archivos
         for (let archivo of archivos) {
             let archivo_split = archivo.originalname.split(".");
@@ -277,16 +278,17 @@ const guardarPDF = async (req, res) => {
                 return;
             }
         }
+        console.log("se valida pdf")
 
         // Renombrar y mover archivos
         for (let archivo of archivos) {
-            let nuevoNombre = `Libros,${titulo}_${numero_registro}_1.${archivo.originalname.split('.').pop()}`;
+            let nuevoNombre = `Libros,${titulo}_${libro.numero_registro}_1.${archivo.originalname.split('.').pop()}`;
             let nuevaRuta = path.join(__dirname, '../imagenes/libros/pdf', nuevoNombre);
 
             fs.renameSync(archivo.path, nuevaRuta);
             archivo.filename = nuevoNombre;
         }
-
+        console.log("se renombra y ruta")
         const librosActualizada = await libros.findOneAndUpdate(
             { _id: librosId },
             {
