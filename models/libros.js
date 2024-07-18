@@ -58,13 +58,20 @@ const LibrosSchema = new Schema({
         type: Number,
     },
     // Campos adicionales
-    ISBN: {
+    isbn: {
         type: String,
     },
     editorial: {
         type: String,
     },
     imprenta: {
+        type: String,
+    },
+    coleccion_serie: {
+        type: String,
+    },
+    
+    pendientes: {
         type: String,
     },
     numero_edicion: {
