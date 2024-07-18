@@ -94,10 +94,10 @@ const LibrosSchema = new Schema({
         type: String,
     },
     fecha_publicacion: {
-        type: Date,
+        type: Number,
     },
     fecha_reimpresion: {
-        type: Date,
+        type: Number,
     },
     encuadernacion: {
         type: String,
