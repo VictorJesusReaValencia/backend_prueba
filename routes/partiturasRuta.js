@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Partituras no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Partituras_${partituras.numero_registro}`;
+      const baseNombreArchivo = `Partituras,${partituras.titulo}_${partituras.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/partituras');

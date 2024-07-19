@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Monumentos no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Monumentos_${monumentos.numero_registro}`;
+      const baseNombreArchivo = `Monumentos,${monumentos.tipo_monumento}_${monumentos.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/monumentos');
