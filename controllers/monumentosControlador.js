@@ -28,10 +28,10 @@ const registrarMonumentos = async (req,res) =>{
         })
     }
 }
+
 const cargarFotografia = async (req, res) => {
     console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
     let archivos = req.files;
-    let monumentosId = req.params.id;
 
     // Validar extensiones de archivos
     for (let archivo of archivos) {
@@ -53,32 +53,16 @@ const cargarFotografia = async (req, res) => {
         }
     }
 
+    // Si todas las extensiones son válidas, guardar los archivos y responder con éxito
     try {
-        const monumentosActualizada = await monumentos.findOneAndUpdate(
-            { _id: monumentosId },
-            {
-                $set: {
-                    images: archivos.map(file => ({
-                        nombre: file.filename
-                    }))
-                }
-            },
-            { new: true }
-        );
+        // Aquí puedes agregar lógica adicional para procesar las imágenes si es necesario
 
-        if (!monumentosActualizada) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al actualizar la hemerografía"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                archivos: req.files
-            });
-        }
+        return res.status(200).json({
+            status: "success",
+            archivos: req.files
+        });
     } catch (error) {
-        // Borrar todos los archivos en caso de error de actualización
+        // Borrar todos los archivos en caso de error
         for (let file of archivos) {
             fs.unlink(file.path, () => {});
         }
@@ -89,6 +73,7 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
+
 const borrarMonumentos = async (req, res) => {
     const id = req.params.id;
 
