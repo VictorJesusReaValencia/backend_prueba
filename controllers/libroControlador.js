@@ -32,7 +32,6 @@ const registrarLibros = async (req,res) =>{
 const cargarFotografia = async (req, res) => {
     console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
     let archivos = req.files;
-    let librosId = req.params.id;
 
     // Validar extensiones de archivos
     for (let archivo of archivos) {
@@ -54,32 +53,16 @@ const cargarFotografia = async (req, res) => {
         }
     }
 
+    // Si todas las extensiones son válidas, guardar los archivos y responder con éxito
     try {
-        const librosActualizada = await libros.findOneAndUpdate(
-            { _id: librosId },
-            {
-                $set: {
-                    images: archivos.map(file => ({
-                        nombre: file.filename
-                    }))
-                }
-            },
-            { new: true }
-        );
+        // Aquí puedes agregar lógica adicional para procesar las imágenes si es necesario
 
-        if (!librosActualizada) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al actualizar la hemerografía"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                archivos: req.files
-            });
-        }
+        return res.status(200).json({
+            status: "success",
+            archivos: req.files
+        });
     } catch (error) {
-        // Borrar todos los archivos en caso de error de actualización
+        // Borrar todos los archivos en caso de error
         for (let file of archivos) {
             fs.unlink(file.path, () => {});
         }
