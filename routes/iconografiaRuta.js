@@ -47,5 +47,6 @@ router.get('/icon/:id', IconografiaControlador.obtenerIconografiaPorID);
 router.get('/numero-por-pais/:id', IconografiaControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', IconografiaControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', IconografiaControlador.obtenerTemasInstituciones);
+router.get('/:institucionId/:id', IconografiaControlador.listarPorTemaEInstitucion);
 
 module.exports = router;

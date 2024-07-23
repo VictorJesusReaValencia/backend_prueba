@@ -47,6 +47,6 @@ router.get('/:id', DocumentacionControlador.obtenerDocumentacionPorID);
 router.get('/numero-por-pais/:id', DocumentacionControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', DocumentacionControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', DocumentacionControlador.obtenerTemasInstituciones);
-
+router.get('/:institucionId/:id', DocumentacionControlador.listarPorTemaEInstitucion);
 
 module.exports = router;

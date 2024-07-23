@@ -48,5 +48,6 @@ router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador
 router.get('/numero-por-pais/:id', LibrosControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInstituciones);
+router.get('/:institucionId/:id', LibrosControlador.listarPorTemaEInstitucion);
 
 module.exports = router;

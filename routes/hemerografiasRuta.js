@@ -47,6 +47,6 @@ router.get('/hemero/:id', HemerografiaControlador.obtenerHemerografiaPorID);
 router.get('/numero-por-pais/:id', HemerografiaControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', HemerografiaControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', HemerografiaControlador.obtenerTemasInstituciones);
-
+router.get('/:institucionId/:id', HemerografiaControlador.listarPorTemaEInstitucion);
 
 module.exports = router;

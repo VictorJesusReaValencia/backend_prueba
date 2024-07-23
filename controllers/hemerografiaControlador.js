@@ -1,6 +1,7 @@
 const hemerografia = require("../models/hemerografia")
 const validator = require("validator")
-const fs = require("fs")
+const fs = require("fs");
+const { constrainedMemory } = require("process");
 
 const pruebaHemerografia = (req, res) => {
     return res.status(200).send({
@@ -225,6 +226,33 @@ const obtenerHemerografiaPorID = async (req, res) => {
     }
 };
 
+const listarPorTemaEInstitucion = async (req, res) => {
+    const { institucionId, id: tema } = req.params;
+    console.log(institucionId)
+    console.log(tema)
+    try {
+        let fotos = await hemerografia.find({ tema: tema, institucion: institucionId }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema e institución"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+
+
 const obtenerNumeroDeFotosPorPais = async (req, res) => {
     let paisID = req.params.id;
   
@@ -261,6 +289,7 @@ try {
     });
 }
 };
+
 const obtenerTemasInstituciones = async (req, res) => {
         try {
             const institucionId  = req.params.id;
@@ -326,6 +355,7 @@ const obtenerTemasInstituciones = async (req, res) => {
         }
     };
     
+    
 module.exports={
     pruebaHemerografia,
     registrarHemerografia,
@@ -337,6 +367,7 @@ module.exports={
     obtenerHemerografiaPorID,
     obtenerNumeroDeFotosPorPais,
     obtenerNumeroDeFotosPorInstitucion,
-    obtenerTemasInstituciones
+    obtenerTemasInstituciones,
+    listarPorTemaEInstitucion
 }
 

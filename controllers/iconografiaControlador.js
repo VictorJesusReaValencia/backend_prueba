@@ -325,6 +325,33 @@ const obtenerTemasInstituciones = async (req, res) => {
         }
     };
     
+
+const listarPorTemaEInstitucion = async (req, res) => {
+    const { institucionId, id: tema } = req.params;
+    console.log(institucionId)
+    console.log(tema)
+    try {
+        let fotos = await iconografia.find({ tema: tema, institucion: institucionId }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema e institución"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+
 module.exports={
     pruebaIconografia,
     registrarIconografia,
@@ -336,6 +363,7 @@ module.exports={
     obtenerIconografiaPorID,
     obtenerNumeroDeFotosPorPais,
     obtenerNumeroDeFotosPorInstitucion,
-    obtenerTemasInstituciones
+    obtenerTemasInstituciones,
+    listarPorTemaEInstitucion
 }
 
