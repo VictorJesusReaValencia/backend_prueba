@@ -94,16 +94,10 @@ const CorrespondenciaSchema = new Schema({
     numero_paginas: {
         type: Number,
     },
-    formato: {
-        type: String,
-    },
-    idioma: {
-        type: String,
-    },
     anexos: {
         type: String,
     },
-    estado_carta: {
+    notas: {
         type: String,
     }
 });

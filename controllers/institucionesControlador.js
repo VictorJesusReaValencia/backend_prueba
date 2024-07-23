@@ -1,18 +1,18 @@
-const iconografia = require("../models/iconografia")
+const instituciones = require("../models/instituciones")
 const validator = require("validator")
 const fs = require("fs")
 
-const pruebaIconografia = (req, res) => {
+const pruebaInstituciones = (req, res) => {
     return res.status(200).send({
         message: "Mensaje de prueba enviado"
     });
 }
-const registrarIconografia = async (req,res) =>{
+const registrarInstituciones = async (req,res) =>{
     //Recojer parametros por post a guardar
     let parametros = req.body;
 
     try{
-        const publicacion = new iconografia(parametros)
+        const publicacion = new instituciones(parametros)
         const publicacionGuardada = await publicacion.save()
         return res.status(200).json({
             status : "successs",
@@ -72,13 +72,13 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
-const borrarIconografia = async (req, res) => {
+const borrarInstituciones = async (req, res) => {
     const id = req.params.id;
 
     try {
-        let icon = await iconografia.findOneAndDelete({ _id: id });
+        let hemero = await instituciones.findOneAndDelete({ _id: id });
 
-        if (!icon) {
+        if (!hemero) {
             return res.status(404).json({
                 status: "error",
                 message: "Hemerografía no encontrada",
@@ -97,14 +97,14 @@ const borrarIconografia = async (req, res) => {
         });
     }
 };
-const editarIconografia = async (req, res) => {
+const editarInstituciones = async (req, res) => {
     const id = req.params.id;
     const datosActualizados = req.body;
 
     try {
-        let icon = await iconografia.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let hemero = await instituciones.findByIdAndUpdate(id, datosActualizados, { new: true });
 
-        if (!icon) {
+        if (!hemero) {
             return res.status(404).json({
                 status: "error",
                 message: "Foto no encontrada"
@@ -113,7 +113,7 @@ const editarIconografia = async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 message: "Foto actualizada exitosamente",
-                icon
+                hemero
             });
         }
     } catch (error) {
@@ -123,10 +123,10 @@ const editarIconografia = async (req, res) => {
         });
     }
 };
-const obtenerTemasIconografia = async (req, res) => {
+const obtenerTemasInstituciones = async (req, res) => {
     try {
         // Obtener temas y número de fotos por tema
-        const temas = await iconografia.aggregate([
+        const temas = await instituciones.aggregate([
             {
                 $group: {
                     _id: "$tema",
@@ -151,7 +151,7 @@ const obtenerTemasIconografia = async (req, res) => {
 
         // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
         const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
-            const libroAleatorio = await iconografia.aggregate([
+            const libroAleatorio = await instituciones.aggregate([
                 { $match: { tema: tema.tema } },
                 { $sample: { size: 1 } }
             ]);
@@ -179,7 +179,7 @@ const obtenerTemasIconografia = async (req, res) => {
 const listarPorTema = async (req, res) => {
     const tema = req.params.id;
     try {
-        let fotos = await iconografia.find({ tema: tema }).sort({ numero_foto: 1 });
+        let fotos = await instituciones.find({ tema: tema }).sort({ numero_foto: 1 });
 
         if (!fotos || fotos.length === 0) {
             return res.status(404).json({
@@ -199,21 +199,47 @@ const listarPorTema = async (req, res) => {
         });
     }
 };
-const obtenerIconografiaPorID = async (req, res) => {
+const listarPorPais = async (req, res) => {
+    const pais = req.params.id;
+    try {
+        let insti = await instituciones.find({ pais: pais }).sort({ nombre: 1 });
+
+        if (!insti || insti.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron instituciones para este país",
+                pais
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                insti
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las instituciones3",
+            pais:pais
+        });
+    }
+};
+
+const obtenerInstitucionesPorID = async (req, res) => {
     let hemeroID = req.params.id;
 
     try {
-        let icon= await iconografia.findById(hemeroID);
+        let hemero= await instituciones.findById(hemeroID);
 
-        if (!icon) {
+        if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Hemerografía no encontrada"
+                message: "Hemerografía no encontrada 3"
             });
         } else {
             return res.status(200).json({
                 status: "success",
-                icon
+                hemero
             });
         }
     } catch (error) {
@@ -223,119 +249,15 @@ const obtenerIconografiaPorID = async (req, res) => {
         });
     }
 };
-
-const obtenerNumeroDeFotosPorPais = async (req, res) => {
-    let paisID = req.params.id;
-  
-    try {
-      // Suponiendo que iconografia es tu modelo de Mongoose
-      let fotosCount = await iconografia.countDocuments({ pais: paisID });
-  
-      return res.status(200).json({
-        status: "success",
-        count: fotosCount
-      });
-    } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de fotos"
-      });
-    }
-  };
-const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
-let paisID = req.params.id;
-
-try {
-    // Suponiendo que iconografia es tu modelo de Mongoose
-    let fotosCount = await iconografia.countDocuments({ institucion: paisID });
-
-    return res.status(200).json({
-    status: "success",
-    count: fotosCount
-    });
-} catch (error) {
-    return res.status(500).json({
-    status: "error",
-    message: "Error al obtener el número de fotos"
-    });
-}
-};
-const obtenerTemasInstituciones = async (req, res) => {
-        try {
-            const institucionId  = req.params.id;
-    
-            console.log('Institucion ID:', institucionId);
-    
-            // Obtener temas y número de fotos por tema filtrando por institución
-            const temas = await iconografia.aggregate([
-                {
-                    $match: {
-                        institucion: institucionId
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$tema",
-                        numeroDeFotos: { $sum: 1 }
-                    }
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        tema: "$_id",
-                        numeroDeFotos: 1
-                    }
-                }
-            ]);
-    
-            console.log('Temas encontrados:', temas);
-    
-            if (!temas.length) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron temas"
-                });
-            }
-    
-            // Obtener una foto aleatoria por cada tema
-            const temasConFoto = await Promise.all(temas.map(async tema => {
-                const fotoAleatoria = await iconografia.aggregate([
-                    { $match: { tema: tema.tema, institucion: institucionId } },
-                    { $sample: { size: 1 } }
-                ]);
-    
-                return {
-                    ...tema,
-                    fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
-                };
-            }));
-    
-            console.log('Temas con foto:', temasConFoto);
-    
-            return res.status(200).json({
-                status: "success",
-                temas: temasConFoto
-            });
-        } catch (error) {
-            console.error('Error:', error);
-            return res.status(500).json({
-                status: "error",
-                message: "Error al obtener los temas"
-            });
-        }
-    };
-    
 module.exports={
-    pruebaIconografia,
-    registrarIconografia,
+    pruebaInstituciones,
+    registrarInstituciones,
     cargarFotografia,
-    borrarIconografia,
-    editarIconografia,
-    obtenerTemasIconografia,
+    borrarInstituciones,
+    editarInstituciones,
+    obtenerTemasInstituciones,
     listarPorTema,
-    obtenerIconografiaPorID,
-    obtenerNumeroDeFotosPorPais,
-    obtenerNumeroDeFotosPorInstitucion,
-    obtenerTemasInstituciones
+    listarPorPais,
+    obtenerInstitucionesPorID
 }
 

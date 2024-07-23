@@ -44,5 +44,8 @@ router.put('/editar/:id', MonumentosControlador.editarMonumentos);
 router.get('/listar-temas', MonumentosControlador.obtenerTemasMonumentos);
 router.get('/tema/:id', MonumentosControlador.listarPorTema);
 router.get('/icon/:id', MonumentosControlador.obtenerMonumentosPorID);
+router.get('/numero-por-pais/:id', MonumentosControlador.obtenerNumeroDeFotosPorPais);
+router.get('/numero-institucion/:id', MonumentosControlador.obtenerNumeroDeFotosPorInstitucion);
+router.get('/listar-temas-instituciones/:id', MonumentosControlador.obtenerTemasInstituciones);
 
 module.exports = router;

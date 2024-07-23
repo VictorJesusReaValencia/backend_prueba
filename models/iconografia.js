@@ -34,8 +34,14 @@ const IconografiaSchema = new Schema({
     ubicacion_fisica: {
         type: String,
     },
-    fecha: {
-        type: Date,
+    anio: {
+        type: Number,
+    },
+    mes: {
+        type: Number,
+    },
+    dia: {
+        type: Number,
     },
     fecha_adquisicion: {
         type: Number,
@@ -75,18 +81,8 @@ const IconografiaSchema = new Schema({
     corriente: {
         type: String,
     },
-    tecnica_impresion: {
+    notas: {
         type: String,
-    },
-    idioma: {
-        type: String,
-    },
-    descripcion_contexto: {
-        type: String,
-    },
-    numero_registro: {
-        type: Number,
     }
 });
-
 module.exports = model("Iconografia", IconografiaSchema, "iconografia");

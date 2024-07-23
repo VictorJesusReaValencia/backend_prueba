@@ -308,6 +308,107 @@ const guardarPDF = async (req, res) => {
     }
 };
 
+const obtenerNumeroDeFotosPorPais = async (req, res) => {
+    let paisID = req.params.id;
+  
+    try {
+      // Suponiendo que libros es tu modelo de Mongoose
+      let fotosCount = await libros.countDocuments({ pais: paisID });
+  
+      return res.status(200).json({
+        status: "success",
+        count: fotosCount
+      });
+    } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Error al obtener el número de fotos"
+      });
+    }
+  };
+const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
+let paisID = req.params.id;
+
+try {
+    // Suponiendo que libros es tu modelo de Mongoose
+    let fotosCount = await libros.countDocuments({ institucion: paisID });
+
+    return res.status(200).json({
+    status: "success",
+    count: fotosCount
+    });
+} catch (error) {
+    return res.status(500).json({
+    status: "error",
+    message: "Error al obtener el número de fotos"
+    });
+}
+};
+const obtenerTemasInstituciones = async (req, res) => {
+        try {
+            const institucionId  = req.params.id;
+    
+            console.log('Institucion ID:', institucionId);
+    
+            // Obtener temas y número de fotos por tema filtrando por institución
+            const temas = await libros.aggregate([
+                {
+                    $match: {
+                        institucion: institucionId
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$tema",
+                        numeroDeFotos: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        tema: "$_id",
+                        numeroDeFotos: 1
+                    }
+                }
+            ]);
+    
+            console.log('Temas encontrados:', temas);
+    
+            if (!temas.length) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "No se encontraron temas"
+                });
+            }
+    
+            // Obtener una foto aleatoria por cada tema
+            const temasConFoto = await Promise.all(temas.map(async tema => {
+                const fotoAleatoria = await libros.aggregate([
+                    { $match: { tema: tema.tema, institucion: institucionId } },
+                    { $sample: { size: 1 } }
+                ]);
+    
+                return {
+                    ...tema,
+                    fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
+                };
+            }));
+    
+            console.log('Temas con foto:', temasConFoto);
+    
+            return res.status(200).json({
+                status: "success",
+                temas: temasConFoto
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            return res.status(500).json({
+                status: "error",
+                message: "Error al obtener los temas"
+            });
+        }
+    };
+    
 module.exports={
     pruebaLibros,
     registrarLibros,
@@ -317,6 +418,9 @@ module.exports={
     obtenerTemasLibros,
     listarPorTema,
     obtenerLibrosPorID,
-    guardarPDF
+    guardarPDF,
+    obtenerNumeroDeFotosPorPais,
+    obtenerNumeroDeFotosPorInstitucion,
+    obtenerTemasInstituciones
 }
 

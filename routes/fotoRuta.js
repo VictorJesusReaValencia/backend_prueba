@@ -38,5 +38,8 @@ router.get('/listar-albumes', pruebaControlador.obtenerAlbumes);
 router.get('/album/:id', pruebaControlador.listarPorAlbum);
 router.delete('/borrar-foto/:id', pruebaControlador.borrar);
 router.put('/editar-foto/:id', pruebaControlador.editar);
+router.get('/numero-por-pais/:id', pruebaControlador.obtenerNumeroDeFotosPorPais);
+router.get('/numero-institucion/:id', pruebaControlador.obtenerNumeroDeFotosPorInstitucion);
+router.get('/listar-temas-instituciones/:id', pruebaControlador.obtenerTemasInstituciones);
 
 module.exports = router;

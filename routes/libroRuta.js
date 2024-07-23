@@ -45,5 +45,8 @@ router.get('/listar-temas', LibrosControlador.obtenerTemasLibros);
 router.get('/tema/:id', LibrosControlador.listarPorTema);
 router.get('/:id', LibrosControlador.obtenerLibrosPorID);
 router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.guardarPDF); // Permite hasta 10 archivos
+router.get('/numero-por-pais/:id', LibrosControlador.obtenerNumeroDeFotosPorPais);
+router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorInstitucion);
+router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInstituciones);
 
 module.exports = router;

@@ -42,6 +42,9 @@ const MonumentosSchema = new Schema({
     coleccion: {
         type: String,
     },
+    pendientes: {
+        type: String,
+    },
     tipo_bien: {
         type: String,
         default: "Iconografía"
@@ -72,10 +75,7 @@ const MonumentosSchema = new Schema({
     entidad: {
         type: String,
     },
-    placa: {
-        type: String,
-    },
-    evento: {
+    inscripciones: {
         type: String,
     },
     descripcion_contexto: {

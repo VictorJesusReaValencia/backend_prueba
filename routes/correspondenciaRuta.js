@@ -44,5 +44,9 @@ router.put('/editar/:id', CorrespondenciaControlador.editarCorrespondencia);
 router.get('/listar-temas', CorrespondenciaControlador.obtenerTemasCorrespondencia);
 router.get('/tema/:id', CorrespondenciaControlador.listarPorTema);
 router.get('/icon/:id', CorrespondenciaControlador.obtenerCorrespondenciaPorID);
+router.get('/numero-por-pais/:id', CorrespondenciaControlador.obtenerNumeroDeFotosPorPais);
+router.get('/numero-institucion/:id', CorrespondenciaControlador.obtenerNumeroDeFotosPorInstitucion);
+router.get('/listar-temas-instituciones/:id', CorrespondenciaControlador.obtenerTemasInstituciones);
+
 
 module.exports = router;

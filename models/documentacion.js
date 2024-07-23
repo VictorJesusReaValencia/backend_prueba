@@ -44,7 +44,7 @@ const DocumentacionSchema = new Schema({
     },
     tipo_bien: {
         type: String,
-        default: "Correspondencia"
+        default: "Documentación"
     },
     hallazgo: {
         type: String,
@@ -63,7 +63,13 @@ const DocumentacionSchema = new Schema({
     tipo_documento: {
         type: String,
     },
+    institucion_emisor: {
+        type: String,
+    },
     emisor: {
+        type: String,
+    },
+    destinatario: {
         type: String,
     },
     fecha_emision: {
@@ -76,24 +82,24 @@ const DocumentacionSchema = new Schema({
         type: String,
     },
     vigencia: {
-        type: String,
+        type: Date,
     },
     transcripcion: {
         type: String,
     },
-    numero_paginas: {
+    numero_expediente: {
         type: Number,
-    },
-    formato: {
-        type: String,
-    },
-    idioma: {
-        type: String,
     },
     notas_relevantes: {
         type: String,
     },
     documento: {
+        type: String,
+    },
+    contenido: {
+        type: String,
+    },
+    pendientes: {
         type: String,
     }
 });
