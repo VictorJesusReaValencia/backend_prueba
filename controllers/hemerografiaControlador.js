@@ -291,69 +291,72 @@ try {
 };
 
 const obtenerTemasInstituciones = async (req, res) => {
-        try {
-            const institucionId  = req.params.id;
-    
-            console.log('Institucion ID:', institucionId);
-    
-            // Obtener temas y número de fotos por tema filtrando por institución
-            const temas = await hemerografia.aggregate([
-                {
-                    $match: {
-                        institucion: institucionId
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$tema",
-                        numeroDeFotos: { $sum: 1 }
-                    }
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        tema: "$_id",
-                        numeroDeFotos: 1
-                    }
+    try {
+        const institucionId = req.params.id;
+
+        console.log('Institucion ID:', institucionId);
+
+        // Obtener temas y número de fotos por tema filtrando por institución
+        const temas = await hemerografia.aggregate([
+            {
+                $match: {
+                    institucion: institucionId
                 }
-            ]);
-    
-            console.log('Temas encontrados:', temas);
-    
-            if (!temas.length) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron temas"
-                });
+            },
+            {
+                $group: {
+                    _id: "$tema",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    tema: "$_id",
+                    numeroDeFotos: 1
+                }
             }
-    
-            // Obtener una foto aleatoria por cada tema
-            const temasConFoto = await Promise.all(temas.map(async tema => {
-                const fotoAleatoria = await hemerografia.aggregate([
-                    { $match: { tema: tema.tema, institucion: institucionId } },
-                    { $sample: { size: 1 } }
-                ]);
-    
-                return {
-                    ...tema,
-                    fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'url'
-                };
-            }));
-    
-            console.log('Temas con foto:', temasConFoto);
-    
-            return res.status(200).json({
-                status: "success",
-                temas: temasConFoto
-            });
-        } catch (error) {
-            console.error('Error:', error);
-            return res.status(500).json({
+        ]);
+
+        console.log('Temas encontrados:', temas);
+
+        if (!temas.length) {
+            return res.status(404).json({
                 status: "error",
-                message: "Error al obtener los temas"
+                message: "No se encontraron temas"
             });
         }
-    };
+
+        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const fotoAleatoria = await hemerografia.aggregate([
+                { $match: { tema: tema.tema, institucion: institucionId } },
+                { $sample: { size: 1 } }
+            ]);
+
+            const nombreImagen = fotoAleatoria[0]?.images?.length > 0 ? fotoAleatoria[0].images[0].nombre : null;
+
+            return {
+                ...tema,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+                nombreImagen: nombreImagen
+            };
+        }));
+
+        console.log('Temas con foto y nombre:', temasConFotoYNombre);
+
+        return res.status(200).json({
+            status: "success",
+            temas: temasConFotoYNombre
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los temas"
+        });
+    }
+};
     
     
 module.exports={
