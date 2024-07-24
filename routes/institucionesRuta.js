@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Instituciones no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Instituciones,${instituciones.nombre_periodico},${instituciones.encabezado}_${instituciones.numero_registro}`;
+      const baseNombreArchivo = `Instituciones,${instituciones.nombre}_${instituciones.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/instituciones');
