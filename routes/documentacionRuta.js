@@ -44,6 +44,7 @@ router.put('/editar/:id', DocumentacionControlador.editarDocumentacion);
 router.get('/listar-temas', DocumentacionControlador.obtenerTemasDocumentacion);
 router.get('/tema/:id', DocumentacionControlador.listarPorTema);
 router.get('/:id', DocumentacionControlador.obtenerDocumentacionPorID);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], DocumentacionControlador.guardarPDF); // Permite hasta 10 archivos
 router.get('/numero-por-pais/:id', DocumentacionControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', DocumentacionControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', DocumentacionControlador.obtenerTemasInstituciones);

@@ -101,7 +101,19 @@ const DocumentacionSchema = new Schema({
     },
     pendientes: {
         type: String,
-    }
+    },
+    pdfs: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+        {
+          nombre: {
+            type: String,
+            required: true,
+          },
+          ruta: {
+            type: String,
+            required: true,
+          }
+        }
+      ],
 });
 
 module.exports = model("Documentacion", DocumentacionSchema, "documentacion");

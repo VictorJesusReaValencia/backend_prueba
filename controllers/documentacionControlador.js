@@ -1,6 +1,7 @@
 const documentacion = require("../models/documentacion")
 const validator = require("validator")
 const fs = require("fs")
+const path = require('path');
 
 const pruebaDocumentacion = (req, res) => {
     return res.status(200).send({
@@ -223,6 +224,88 @@ const obtenerDocumentacionPorID = async (req, res) => {
         });
     }
 };
+const guardarPDF = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
+    let documentacionId = req.params.id;
+
+    try {
+        // Obtener título desde la base de datos
+        const docu = await documentacion.findById(documentacionId);
+        if (!docu) {
+            return res.status(404).json({
+                status: "error",
+                message: "Libro no encontrado"
+            });
+        }
+        let titulo = docu.titulo; // Asumiendo que el título está en el campo 'titulo' del documento
+
+        console.log("se encuentra el docu")
+        // Validar extensiones de archivos
+        for (let archivo of archivos) {
+            let archivo_split = archivo.originalname.split(".");
+            let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+            if (extension !== "pdf") {
+                fs.unlink(archivo.path, (error) => {
+                    // Borrar todos los archivos en caso de error de validación
+                    for (let file of archivos) {
+                        fs.unlink(file.path, () => {});
+                    }
+                    return res.status(500).json({
+                        status: "error",
+                        message: "Extensión de archivo no permitida",
+                        extension
+                    });
+                });
+                return;
+            }
+        }
+        console.log("se valida pdf")
+
+        // Renombrar y mover archivos
+        for (let archivo of archivos) {
+            let nuevoNombre = `Documetancion_${docu.numero_registro}_1.${archivo.originalname.split('.').pop()}`;
+            let nuevaRuta = path.join(__dirname, '../imagenes/documentacion/pdf', nuevoNombre);
+
+            fs.renameSync(archivo.path, nuevaRuta);
+            archivo.filename = nuevoNombre;
+        }
+        console.log("se renombra y ruta")
+        const documentacionActualizada = await documentacion.findOneAndUpdate(
+            { _id: documentacionId },
+            {
+                $set: {
+                    pdfs: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!documentacionActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: archivos.map(file => ({ nombre: file.filename }))
+            });
+        }
+    } catch (error) {
+        // Borrar todos los archivos en caso de error de actualización
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 
 const obtenerNumeroDeFotosPorPais = async (req, res) => {
     let paisID = req.params.id;
@@ -365,6 +448,7 @@ module.exports={
     obtenerNumeroDeFotosPorInstitucion,
     obtenerNumeroDeFotosPorPais,
     obtenerTemasInstituciones,
-    listarPorTemaEInstitucion
+    listarPorTemaEInstitucion,
+    guardarPDF
 }
 
