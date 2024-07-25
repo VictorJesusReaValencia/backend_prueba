@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Documentacion no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Documentacion_${documentacion.institucion}_${documentacion.numero_registro}`;
+      const baseNombreArchivo = `Documentacion,${documentacion.institucion}_${documentacion.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/documentacion');
