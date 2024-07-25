@@ -67,6 +67,9 @@ const ObjetosSchema = new Schema({
     },
     descripcion_contexto: {
         type: String,
+    },
+    pendientes:{
+        type: String,
     }
 });
 
