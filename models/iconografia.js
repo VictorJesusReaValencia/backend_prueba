@@ -63,6 +63,9 @@ const IconografiaSchema = new Schema({
     tema: {
         type: String,
     },
+    numero_registro: {
+        type: Number,
+    },
     tipo_iconografia: {
         type: String,
     },

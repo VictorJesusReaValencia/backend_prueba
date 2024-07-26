@@ -17,7 +17,7 @@ const almacenamiento = multer.diskStorage({
         return cb(new Error('Iconografia no encontrada'));
       }
       const extension = path.extname(file.originalname);
-      const baseNombreArchivo = `Iconografia,${iconografia.nombre_periodico},${iconografia.encabezado}_${iconografia.numero_registro}`;
+      const baseNombreArchivo = `Iconografia,${iconografia.tipo_iconografia}_${iconografia.numero_registro}`;
 
       // Obtener el conteo de archivos existentes en la carpeta
       const files = fs.readdirSync('./imagenes/iconografia');
