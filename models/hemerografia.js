@@ -78,6 +78,9 @@ const HemerografiaSchema = new Schema({
     numero_publicacion: {
         type: String,
     },
+    numero_carpeta: {
+      type: String,
+  },
     genero_periodistico: {
         type: String,
     },
