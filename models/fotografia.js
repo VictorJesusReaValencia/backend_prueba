@@ -27,7 +27,7 @@ const FotoSchema = new Schema({
     ubicacion_fisica: {
       type: String,
     },
-    anio: {
+    fecha: {
       type: Number,
     },
     mes: {
@@ -69,6 +69,9 @@ const FotoSchema = new Schema({
       type: String,
     },
     descripcion: {
+      type: String,
+    },
+    pendientes: {
       type: String,
     },
   });

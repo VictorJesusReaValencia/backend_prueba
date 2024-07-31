@@ -86,6 +86,9 @@ const IconografiaSchema = new Schema({
     },
     notas: {
         type: String,
+    },
+    pendientes: {
+        type: String,
     }
 });
 module.exports = model("Iconografia", IconografiaSchema, "iconografia");

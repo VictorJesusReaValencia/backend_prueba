@@ -36,6 +36,7 @@ router.get('/listar-paises', pruebaControlador.obtenerPaises);
 router.get('/listar-temas', pruebaControlador.obtenerTemas);
 router.get('/listar-albumes', pruebaControlador.obtenerAlbumes);
 router.get('/album/:id', pruebaControlador.listarPorAlbum);
+router.get('/tema/:id', pruebaControlador.listarPorTema);
 router.delete('/borrar-foto/:id', pruebaControlador.borrar);
 router.put('/editar-foto/:id', pruebaControlador.editar);
 router.get('/numero-por-pais/:id', pruebaControlador.obtenerNumeroDeFotosPorPais);

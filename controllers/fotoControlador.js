@@ -284,8 +284,13 @@ const obtenerTemas = async (req, res) => {
 };
 const obtenerAlbumes = async (req, res) => {
     try {
-        // Obtener álbumes y número de fotos por álbum
+        // Obtener álbumes y número de fotos por álbum, excluyendo aquellos con null en numero_album
         const albumes = await Fotografia.aggregate([
+            {
+                $match: {
+                    numero_album: { $ne: null }
+                }
+            },
             {
                 $group: {
                     _id: "$numero_album",
@@ -332,6 +337,30 @@ const obtenerAlbumes = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: "Error al obtener los álbumes"
+        });
+    }
+};
+
+const listarPorTema = async (req, res) => {
+    const tema = req.params.id;
+    try {
+        let fotos = await Fotografia.find({ tema: tema }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
         });
     }
 };
@@ -495,6 +524,7 @@ module.exports = { pruebaFoto,
                 obtenerPaises, 
                 obtenerTemas, 
                 obtenerAlbumes,
+                listarPorTema,
                 listarPorAlbum, 
                 borrar, 
                 editar,
