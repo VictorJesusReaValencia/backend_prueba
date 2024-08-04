@@ -80,7 +80,7 @@ const HemerografiaSchema = new Schema({
     },
     numero_carpeta: {
       type: String,
-  },
+    },
     genero_periodistico: {
         type: String,
     },
