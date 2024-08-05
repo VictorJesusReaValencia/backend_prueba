@@ -181,7 +181,7 @@ const obtenerTemasHemerografia = async (req, res) => {
 const listarPorTema = async (req, res) => {
     const tema = req.params.id;
     try {
-        let fotos = await hemerografia.find({ tema: tema }).sort({ numero_foto: 1 });
+        let fotos = await hemerografia.find({ tema: tema }).sort({ tema: 1 });
 
         if (!fotos || fotos.length === 0) {
             return res.status(404).json({
