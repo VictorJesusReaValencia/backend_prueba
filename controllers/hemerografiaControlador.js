@@ -141,6 +141,9 @@ const obtenerTemasHemerografia = async (req, res) => {
                     tema: "$_id",
                     numeroDeFotos: 1
                 }
+            },
+            {
+                $sort: { tema: 1 } // Ordenar alfabéticamente por tema
             }
         ]);
 
@@ -178,6 +181,7 @@ const obtenerTemasHemerografia = async (req, res) => {
         });
     }
 };
+
 const listarPorTema = async (req, res) => {
     const tema = req.params.id;
     try {
