@@ -28,7 +28,7 @@ const FotoSchema = new Schema({
       type: String,
     },
     fecha: {
-      type: Number,
+      type: Date,
     },
     mes: {
       type: Number,
@@ -71,7 +71,7 @@ const FotoSchema = new Schema({
     descripcion: {
       type: String,
     },
-    pendientes: {
+    resumen: {
       type: String,
     },
   });
