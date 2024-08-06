@@ -57,6 +57,15 @@ const LibrosSchema = new Schema({
     numero_registro: {
         type: Number,
     },
+    numero_foto: {
+        type: Number,
+    },
+    formato: {
+        type: String,
+    },
+    camara: {
+        type: Number,
+    },
     // Campos adicionales
     isbn: {
         type: String,
