@@ -48,5 +48,7 @@ router.get('/numero-por-pais/:id', PartiturasControlador.obtenerNumeroDeFotosPor
 router.get('/numero-institucion/:id', PartiturasControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', PartiturasControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', PartiturasControlador.listarPorTemaEInstitucion);
+router.get('/numero-bienes', PartiturasControlador.obtenerNumeroDeBienesTotales);
+
 
 module.exports = router;

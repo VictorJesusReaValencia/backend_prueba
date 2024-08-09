@@ -48,5 +48,8 @@ router.get('/numero-por-pais/:id', HemerografiaControlador.obtenerNumeroDeFotosP
 router.get('/numero-institucion/:id', HemerografiaControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', HemerografiaControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', HemerografiaControlador.listarPorTemaEInstitucion);
+router.get('/listar-carpetas', HemerografiaControlador.obtenerCarpetasRecortes);
+router.get('/listar/carpeta/:id', HemerografiaControlador.listarPorCarpeta);
+router.get('/numero-bienes', HemerografiaControlador.obtenerNumeroDeBienesTotales);
 
 module.exports = router;

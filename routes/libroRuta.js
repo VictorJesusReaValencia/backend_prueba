@@ -49,5 +49,6 @@ router.get('/numero-por-pais/:id', LibrosControlador.obtenerNumeroDeFotosPorPais
 router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', LibrosControlador.listarPorTemaEInstitucion);
+router.get('/numero-bienes', LibrosControlador.obtenerNumeroDeBienesTotales);
 
 module.exports = router;

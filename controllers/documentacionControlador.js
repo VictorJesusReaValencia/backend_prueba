@@ -435,7 +435,23 @@ const listarPorTemaEInstitucion = async (req, res) => {
         });
     }
 };
-
+const obtenerNumeroDeBienesTotales = async (req, res) => {
+    try {
+      // Suponiendo que Bienes es tu modelo de Mongoose
+      let bienesCount = await documentacion.countDocuments({});
+  
+      return res.status(200).json({
+        status: "success",
+        count: bienesCount
+      });
+    } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Error al obtener el número de bienes"
+      });
+    }
+  };
+  
 module.exports={
     pruebaDocumentacion,
     registrarDocumentacion,
@@ -449,6 +465,7 @@ module.exports={
     obtenerNumeroDeFotosPorPais,
     obtenerTemasInstituciones,
     listarPorTemaEInstitucion,
-    guardarPDF
+    guardarPDF,
+    obtenerNumeroDeBienesTotales
 }
 

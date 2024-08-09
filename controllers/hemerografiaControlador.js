@@ -361,8 +361,105 @@ const obtenerTemasInstituciones = async (req, res) => {
         });
     }
 };
-    
-    
+
+const obtenerCarpetasRecortes = async (req, res) => {
+    try {
+        // Obtener álbumes y número de fotos por álbum, excluyendo aquellos con null en numero_album
+        const albumes = await hemerografia.aggregate([
+            {
+                $match: {
+                    numero_carpeta: { $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: "$numero_carpeta",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    album: "$_id",
+                    numeroDeFotos: 1
+                }
+            },
+            {
+                $sort: { album: 1 } // Orden ascendente por número de álbum
+            }
+        ]);
+
+        if (!albumes.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron álbumes"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada álbum
+        const albumesConFoto = await Promise.all(albumes.map(async album => {
+            const fotoAleatoria = await hemerografia.aggregate([
+                { $match: { numero_album: album.album } },
+                { $sample: { size: 1 } }
+            ]);
+
+            return {
+                ...album,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+            };
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            albumes: albumesConFoto
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los álbumes"
+        });
+    }
+};
+const listarPorCarpeta = async (req, res) => {
+    const albumId = req.params.id;
+    try {
+        let fotos = await hemerografia.find({ numero_carpeta: albumId }).sort({ numero_registro: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para esta carpeta"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+const obtenerNumeroDeBienesTotales = async (req, res) => {
+    try {
+      // Suponiendo que Bienes es tu modelo de Mongoose
+      let bienesCount = await hemerografia.countDocuments({});
+  
+      return res.status(200).json({
+        status: "success",
+        count: bienesCount
+      });
+    } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Error al obtener el número de bienes"
+      });
+    }
+  };
+  
 module.exports={
     pruebaHemerografia,
     registrarHemerografia,
@@ -375,6 +472,9 @@ module.exports={
     obtenerNumeroDeFotosPorPais,
     obtenerNumeroDeFotosPorInstitucion,
     obtenerTemasInstituciones,
-    listarPorTemaEInstitucion
+    listarPorTemaEInstitucion,
+    obtenerCarpetasRecortes,
+    listarPorCarpeta,
+    obtenerNumeroDeBienesTotales
 }
 
