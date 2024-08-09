@@ -43,7 +43,7 @@ router.delete('/borrar/:id', LibrosControlador.borrarLibros);
 router.put('/editar/:id', LibrosControlador.editarLibros);
 router.get('/listar-temas', LibrosControlador.obtenerTemasLibros);
 router.get('/tema/:id', LibrosControlador.listarPorTema);
-router.get('/:id', LibrosControlador.obtenerLibrosPorID);
+router.get('/libro/:id', LibrosControlador.obtenerLibrosPorID);
 router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.guardarPDF); // Permite hasta 10 archivos
 router.get('/numero-por-pais/:id', LibrosControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorInstitucion);
