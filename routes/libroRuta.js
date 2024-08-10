@@ -50,5 +50,6 @@ router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorI
 router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', LibrosControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', LibrosControlador.obtenerNumeroDeBienesTotales);
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', LibrosControlador.actualizarInstitucion);
 
 module.exports = router;

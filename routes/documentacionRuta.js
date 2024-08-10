@@ -50,5 +50,5 @@ router.get('/numero-institucion/:id', DocumentacionControlador.obtenerNumeroDeFo
 router.get('/listar-temas-instituciones/:id', DocumentacionControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', DocumentacionControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', DocumentacionControlador.obtenerNumeroDeBienesTotales);
-
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', DocumentacionControlador.actualizarInstitucion);
 module.exports = router;

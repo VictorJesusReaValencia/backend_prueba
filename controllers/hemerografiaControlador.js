@@ -459,7 +459,38 @@ const obtenerNumeroDeBienesTotales = async (req, res) => {
       });
     }
   };
-  
+const actualizarInstitucion = async (req, res) => {
+    const { institucionanterior, institucionueva } = req.params;
+
+    try {
+        // Buscar todas las fotos que tengan la institución anterior
+        let fotosActualizadas = await hemerografia.updateMany(
+            { institucion: institucionanterior },
+            { $set: { institucion: institucionueva } },
+            { new: true }
+        );
+
+        if (fotosActualizadas.nModified === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotografías con la institución especificada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Institución actualizada en las fotografías exitosamente",
+                fotosActualizadas
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar la institución en las fotografías",
+            error: error.message
+        });
+    }
+};
+
 module.exports={
     pruebaHemerografia,
     registrarHemerografia,
@@ -475,6 +506,7 @@ module.exports={
     listarPorTemaEInstitucion,
     obtenerCarpetasRecortes,
     listarPorCarpeta,
-    obtenerNumeroDeBienesTotales
+    obtenerNumeroDeBienesTotales,
+    actualizarInstitucion
 }
 

@@ -50,5 +50,6 @@ router.get('/numero-institucion/:id', CorrespondenciaControlador.obtenerNumeroDe
 router.get('/listar-temas-instituciones/:id', CorrespondenciaControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', CorrespondenciaControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', CorrespondenciaControlador.obtenerNumeroDeBienesTotales);
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', CorrespondenciaControlador.actualizarInstitucion);
 
 module.exports = router;

@@ -51,5 +51,6 @@ router.get('/:institucionId/:id', HemerografiaControlador.listarPorTemaEInstituc
 router.get('/listar-carpetas', HemerografiaControlador.obtenerCarpetasRecortes);
 router.get('/listar/carpeta/:id', HemerografiaControlador.listarPorCarpeta);
 router.get('/numero-bienes', HemerografiaControlador.obtenerNumeroDeBienesTotales);
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', HemerografiaControlador.actualizarInstitucion);
 
 module.exports = router;

@@ -49,6 +49,7 @@ router.get('/numero-institucion/:id', PartiturasControlador.obtenerNumeroDeFotos
 router.get('/listar-temas-instituciones/:id', PartiturasControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', PartiturasControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', PartiturasControlador.obtenerNumeroDeBienesTotales);
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', PartiturasControlador.actualizarInstitucion);
 
 
 module.exports = router;
