@@ -44,5 +44,5 @@ router.get('/numero-institucion/:id', pruebaControlador.obtenerNumeroDeFotosPorI
 router.get('/listar-temas-instituciones/:id', pruebaControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', pruebaControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', pruebaControlador.obtenerNumeroDeBienesTotales);
-
+router.put('/actualizar-institucion/:institucionanterior/:institucionueva', pruebaControlador.actualizarInstitucion);
 module.exports = router;

@@ -45,5 +45,7 @@ router.get('/listar-temas', InstitucionesControlador.obtenerTemasInstituciones);
 router.get('/tema/:id', InstitucionesControlador.listarPorTema);
 router.get('/pais/:id', InstitucionesControlador.listarPorPais);
 router.get('/:id', InstitucionesControlador.obtenerInstitucionesPorNombre);
+router.get('/listar/todo', InstitucionesControlador.listarTodo);
+
 
 module.exports = router;

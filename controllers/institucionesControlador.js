@@ -249,6 +249,48 @@ const obtenerInstitucionesPorNombre = async (req, res) => {
         });
     }
 };
+const listarTodo = async (req, res) => {
+    try {
+        let inst = await instituciones.find().sort({ pais: 1, ciudad: 1, nombre: 1 });
+
+        if (!inst || inst.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron inst",
+            });
+        }
+
+        // Estructura del resultado
+        const data = {};
+
+        // Iterar sobre cada institución y construir el objeto data
+        inst.forEach((inst) => {
+            const { pais, ciudad, nombre } = inst;
+
+            if (!data[pais]) {
+                data[pais] = {};
+            }
+
+            if (!data[pais][ciudad]) {
+                data[pais][ciudad] = [];
+            }
+
+            data[pais][ciudad].push(nombre);
+        });
+
+        return res.status(200).send({
+            status: "success",
+            data
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los datos",
+            error: error.message
+        });
+    }
+};
 
 module.exports={
     pruebaInstituciones,
@@ -259,6 +301,7 @@ module.exports={
     obtenerTemasInstituciones,
     listarPorTema,
     listarPorPais,
-    obtenerInstitucionesPorNombre
+    obtenerInstitucionesPorNombre,
+    listarTodo
 }
 
