@@ -225,16 +225,16 @@ const listarPorPais = async (req, res) => {
     }
 };
 
-const obtenerInstitucionesPorID = async (req, res) => {
-    let hemeroID = req.params.id;
+const obtenerInstitucionesPorNombre = async (req, res) => {
+    let nombreHemerografia = req.params.id;
 
     try {
-        let hemero= await instituciones.findById(hemeroID);
+        let hemero = await instituciones.findOne({ nombre: nombreHemerografia });
 
         if (!hemero) {
             return res.status(404).json({
                 status: "error",
-                message: "Hemerografía no encontrada 3"
+                message: "Hemerografía no encontrada"
             });
         } else {
             return res.status(200).json({
@@ -249,6 +249,7 @@ const obtenerInstitucionesPorID = async (req, res) => {
         });
     }
 };
+
 module.exports={
     pruebaInstituciones,
     registrarInstituciones,
@@ -258,6 +259,6 @@ module.exports={
     obtenerTemasInstituciones,
     listarPorTema,
     listarPorPais,
-    obtenerInstitucionesPorID
+    obtenerInstitucionesPorNombre
 }
 
