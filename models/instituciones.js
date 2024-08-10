@@ -41,6 +41,12 @@ const InstitucionesSchema = new Schema({
     },
     pendiente: {
         type: String,
+    },
+    persona_registra: {
+        type: String,
+    },
+    pagina_web: {
+        type: String,
     }
 });
 
