@@ -31,11 +31,11 @@ const PartiturasRoutes = require("./routes/partiturasRuta")
 const ObjetosRoutes = require("./routes/objetosRuta")
 const MonumentosRoutes = require("./routes/monumentosRuta")
 const InstitucionesRoutes = require("./routes/institucionesRuta")
-
+const PeriodicosRoutes = require("./routes/periodicosRuta")
 
 // Middleware para usar las rutas
 
-
+app.use("/api/periodicos", PeriodicosRoutes)
 app.use("/api/instituciones", InstitucionesRoutes)
 app.use("/api/documentacion", DocumentacionRoutes)
 app.use("/api/monumentos", MonumentosRoutes)
