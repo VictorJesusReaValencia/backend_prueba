@@ -71,52 +71,50 @@ const registrarfoto2 = async (req,res) =>{
 
     }
 }
-const subir_foto= async (req,res) =>{
-    console.log(req.file)
-    let archivo = req.file.originalname;
-    let archivo_split = archivo.split("\.");
-    let extension = archivo_split[1]
-    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "JPG"){
-        fs.unlink(req.file.path,(error)=>{
-            return res.status(500).json({
-                status:"error",
-                message:"nelprro3",
-                extension
-            })
-        })
+const cargarFotografia = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = req.files;
 
-    }else{
-
-        let fotografiaID = req.params.id;
-
-        try {
-            const fotografiaActualizada = await Fotografia.findOneAndUpdate(
-                { _id: fotografiaID },
-                { image: req.file.filename },
-                { new: true }
-            );
-
-            if (!fotografiaActualizada) {
+    // Validar extensiones de archivos
+    for (let archivo of archivos) {
+        let archivo_split = archivo.originalname.split(".");
+        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
+            fs.unlink(archivo.path, (error) => {
+                // Borrar todos los archivos en caso de error de validación
+                for (let file of archivos) {
+                    fs.unlink(file.path, () => {});
+                }
                 return res.status(500).json({
                     status: "error",
-                    message: "nelprro2"
+                    message: "Extensión de archivo no permitida",
+                    extension
                 });
-            } else {
-                return res.status(200).json({
-                    status: "simon",
-                    fichero: req.file
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "nelprro"
             });
+            return;
         }
-
     }
 
-} 
+    // Si todas las extensiones son válidas, guardar los archivos y responder con éxito
+    try {
+        // Aquí puedes agregar lógica adicional para procesar las imágenes si es necesario
+
+        return res.status(200).json({
+            status: "success",
+            archivos: req.files
+        });
+    } catch (error) {
+        // Borrar todos los archivos en caso de error
+        for (let file of archivos) {
+            fs.unlink(file.path, () => {});
+        }
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 
 const borrar = async (req, res) => {
     const id = req.params.id;
@@ -194,7 +192,6 @@ const obtenerFotoPorID = async (req, res) => {
     }
 };
 
-  
 // obtener paises
 const obtenerPaises = async (req, res) => {
     try {
@@ -344,7 +341,7 @@ const obtenerAlbumes = async (req, res) => {
 const listarPorTema = async (req, res) => {
     const tema = req.params.id;
     try {
-        let fotos = await Fotografia.find({ tema: tema }).sort({ numero_foto: 1 });
+        let fotos = await Fotografia.find({ tema: tema }).sort({ tema: 1 });
 
         if (!fotos || fotos.length === 0) {
             return res.status(404).json({
@@ -565,7 +562,7 @@ const actualizarInstitucion = async (req, res) => {
 
 module.exports = { pruebaFoto,
                 registrarfoto2,
-                subir_foto, 
+                cargarFotografia, 
                 listar, 
                 obtenerFotoPorID, 
                 obtenerPaises, 

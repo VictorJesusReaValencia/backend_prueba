@@ -9,10 +9,18 @@ const FotoSchema = new Schema({
     autor: {
       type: String,
     },
-    image: {
-      type: String,
-      default: "default.jpg"
-    },
+    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+      {
+        nombre: {
+          type: String,
+          required: true,
+        },
+        fileId: {
+          type: String,
+          required: true,
+        }
+      }
+    ],
     pais: {
       type: String,
       required: true
