@@ -35,7 +35,7 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
-
+const upload = multer({ dest: 'imagenes/' });
 router.get('/prueba-foto', pruebaControlador.pruebaFoto);
 router.get('/listar-foto', pruebaControlador.listar);
 router.post('/registrar-foto', pruebaControlador.registrarfoto2);
@@ -55,5 +55,6 @@ router.get('/:institucionId/:id', pruebaControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', pruebaControlador.obtenerNumeroDeBienesTotales);
 
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', pruebaControlador.actualizarInstitucion);
-
+router.get('/gpt/amado-nervo/:id', pruebaControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), pruebaControlador.getTranscriptionFromImage);
 module.exports = router;

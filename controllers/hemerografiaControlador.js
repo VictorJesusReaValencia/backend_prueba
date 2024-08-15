@@ -443,6 +443,82 @@ const listarPorCarpeta = async (req, res) => {
         });
     }
 };
+const obtenerSeccionesRecortes = async (req, res) => {
+    try {
+        // Agrupar por sección y contar el número de bienes en cada una
+        const secciones = await hemerografia.aggregate([
+            {
+                $match: {
+                    seccion: { $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: "$seccion",
+                    numeroDeBienes: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    seccion: "$_id",
+                    numeroDeBienes: 1
+                }
+            },
+            {
+                $sort: { seccion: 1 } // Orden ascendente por sección
+            }
+        ]);
+
+        if (!secciones.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron secciones"
+            });
+        }
+
+        // Obtener todas las secciones registradas
+        const todasLasSecciones = await hemerografia.distinct("seccion", { seccion: { $ne: null } });
+
+        return res.status(200).json({
+            status: "success",
+            secciones: secciones,
+            todasLasSecciones: todasLasSecciones
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las secciones"
+        });
+    }
+};
+
+const listarPorSeccion = async (req, res) => {
+    const seccionId = req.params.id;
+    try {
+        let bienes = await hemerografia.find({ seccion: seccionId }).sort({ numero_registro: 1 });
+
+        if (!bienes || bienes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: `No se encontraron bienes para la sección ${seccionId}`
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                bienes
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los bienes"
+        });
+    }
+};
+
+
+
 const obtenerNumeroDeBienesTotales = async (req, res) => {
     try {
       // Suponiendo que Bienes es tu modelo de Mongoose
@@ -490,6 +566,81 @@ const actualizarInstitucion = async (req, res) => {
         });
     }
 };
+const guardarPDF = async (req, res) => {
+    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
+    let archivos = Array.isArray(req.files) ? req.files : [req.files];
+    let librosId = req.params.id;
+
+    try {
+        // Obtener título desde la base de datos
+        const libro = await hemerografia.findById(librosId);
+        if (!libro) {
+            return res.status(404).json({
+                status: "error",
+                message: "Libro no encontrado"
+            });
+        }
+        let titulo = libro.encabezado; // Asumiendo que el título está en el campo 'encabezado' del documento
+
+        console.log("se encuentra el libro");
+
+        // Validar extensiones de archivos
+        for (let archivo of archivos) {
+            console.log("se entra en el bucle");
+            let archivo_split = archivo.originalname.split(".");
+            let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+         
+        }
+        console.log("se valida pdf");
+
+        // Renombrar y mover archivos
+        for (let [index, archivo] of archivos.entries()) {
+            let nuevoNombre = `Hemerografia,${titulo}_${libro.numero_registro}_${index + 1}.${archivo.originalname.split('.').pop()}`;
+            let nuevaRuta = path.join(__dirname, '../imagenes/hemerografia/pdf', nuevoNombre);
+
+            await fs.promises.rename(archivo.path, nuevaRuta);
+            archivo.filename = nuevoNombre;
+        }
+        console.log("se renombra y ruta");
+
+        const librosActualizada = await libros.findOneAndUpdate(
+            { _id: librosId },
+            {
+                $set: {
+                    pdfs: archivos.map(file => ({
+                        nombre: file.filename
+                    }))
+                }
+            },
+            { new: true }
+        );
+
+        if (!librosActualizada) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizar la hemerografía"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                archivos: archivos.map(file => ({ nombre: file.filename }))
+            });
+        }
+    } catch (error) {
+        archivos.forEach(file => {
+            try {
+                fs.unlinkSync(file.path);
+            } catch (err) {
+                console.error(`Error eliminando el archivo ${file.path}:`, err);
+            }
+        });
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el servidor",
+            error
+        });
+    }
+};
 
 module.exports={
     pruebaHemerografia,
@@ -507,6 +658,9 @@ module.exports={
     obtenerCarpetasRecortes,
     listarPorCarpeta,
     obtenerNumeroDeBienesTotales,
-    actualizarInstitucion
+    actualizarInstitucion,
+    obtenerSeccionesRecortes,
+    listarPorSeccion,
+    guardarPDF
 }
 

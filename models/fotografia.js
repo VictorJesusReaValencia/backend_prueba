@@ -82,6 +82,9 @@ const FotoSchema = new Schema({
     resumen: {
       type: String,
     },
+    pendientes: {
+      type: String,
+    },
   });
 
 

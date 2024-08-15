@@ -52,5 +52,8 @@ router.get('/listar-carpetas', HemerografiaControlador.obtenerCarpetasRecortes);
 router.get('/listar/carpeta/:id', HemerografiaControlador.listarPorCarpeta);
 router.get('/numero-bienes', HemerografiaControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', HemerografiaControlador.actualizarInstitucion);
+router.get('/listar-secciones', HemerografiaControlador.obtenerSeccionesRecortes);
+router.get('/listar/seccion/:id', HemerografiaControlador.listarPorSeccion);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], HemerografiaControlador.guardarPDF); // Permite hasta 10 archivos
 
 module.exports = router;
