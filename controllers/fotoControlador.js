@@ -2,15 +2,13 @@ const Fotografia = require("../models/fotografia");
 const fotografia = require("../models/fotografia");
 const validator = require("validator")
 const fs = require("fs")
-const { Configuration, OpenAIApi } = require("openai"); // Importación correcta
+const  OpenAIApi  = require("openai");
 
-// Configuración de OpenAI
-const configuration = new Configuration({
+
+const openai = new OpenAIApi({
     apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
     organization: process.env.ORG // Rellena con tu ID de Organización si es necesario
 });
-const openai = new OpenAIApi(configuration); // Instanciación correcta
-
 const listar = async (req, res) => {
     try {
         let fotos = await Fotografia.find({}).sort({numero_foto:1});
