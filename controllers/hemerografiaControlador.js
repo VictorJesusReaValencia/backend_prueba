@@ -30,26 +30,32 @@ const registrarHemerografia = async (req,res) =>{
     }
 }
 const cargarFotografia = async (req, res) => {
-    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
     let archivos = req.files;
+
+    // Verificar si no se han recibido archivos
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ninguna foto"
+        });
+    }
+
+    console.log(archivos); // Para verificar que se están recibiendo múltiples archivos
 
     // Validar extensiones de archivos
     for (let archivo of archivos) {
         let archivo_split = archivo.originalname.split(".");
         let extension = archivo_split[archivo_split.length - 1].toLowerCase();
         if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
-            fs.unlink(archivo.path, (error) => {
-                // Borrar todos los archivos en caso de error de validación
-                for (let file of archivos) {
-                    fs.unlink(file.path, () => {});
-                }
-                return res.status(500).json({
-                    status: "error",
-                    message: "Extensión de archivo no permitida",
-                    extension
-                });
+            // Borrar todos los archivos en caso de error de validación
+            for (let file of archivos) {
+                fs.unlink(file.path, () => {});
+            }
+            return res.status(500).json({
+                status: "error",
+                message: "Extensión de archivo no permitida",
+                extension
             });
-            return;
         }
     }
 
