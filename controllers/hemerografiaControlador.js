@@ -4,7 +4,6 @@ const fs = require("fs");
 const { constrainedMemory } = require("process");
 const  OpenAIApi  = require("openai");
 
-
 const openai = new OpenAIApi({
     apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
     organization: process.env.ORG // Rellena con tu ID de Organización si es necesario
@@ -14,27 +13,35 @@ const pruebaHemerografia = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
-const registrarHemerografia = async (req,res) =>{
-    //Recojer parametros por post a guardar
+const registrarHemerografia = async (req, res) => {
+    // Recojer parametros por post a guardar
     let parametros = req.body;
 
-    try{
-        const publicacion = new hemerografia(parametros)
-        const publicacionGuardada = await publicacion.save()
+    try {
+        // Formatear el campo fecha_publicacion si está presente
+        if (parametros.fecha_publicacion) {
+            const fechaOriginal = new Date(parametros.fecha_publicacion);
+            parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        }
+
+        // Crear una nueva instancia del modelo y guardar en la base de datos
+        const publicacion = new hemerografia(parametros);
+        const publicacionGuardada = await publicacion.save();
+
         return res.status(200).json({
-            status : "successs",
+            status: "success",
             mensaje: "publicacion periodica guardada correctamente",
             publicacionGuardada
-        })
+        });
 
-    }catch(erro){
+    } catch (erro) {
         return res.status(400).json({
-            status : "error",
+            status: "error",
             mensaje: "Algo anda mal we",
             parametros
-        })
+        });
     }
-}
+};
 const cargarFotografia = async (req, res) => {
     let archivos = req.files;
 
@@ -806,6 +813,40 @@ const getSugerencias = async (req, res) => {
         res.status(500).json({ error: 'Error al buscar en la base de datos' });
     }
 };
+const listarPendientes = async (req, res) => {
+    try {
+        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
+
+        if (!pendientes || pendientes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        } 
+
+        // Filtrar elementos donde el campo revisado no sea "si"
+        pendientes = pendientes.filter(item => item.revisado !== "Sí");
+
+        if (pendientes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                totalPendientes: pendientes.length,
+                pendientes
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los elementos pendientes"
+        });
+    }
+};
+
 
 
 
@@ -832,6 +873,7 @@ module.exports={
     getChatGPTResponse,
     getTranscriptionFromImage,
     processTextAndImage,
-    getSugerencias
+    getSugerencias,
+    listarPendientes
 }
 

@@ -59,5 +59,6 @@ router.get('/gpt/amado-nervo/:id', HemerografiaControlador.getChatGPTResponse);
 router.post('/gpt/gpt/transcripcion', upload.single('file'), HemerografiaControlador.getTranscriptionFromImage);
 router.post('/gpt/image-text/:id', upload.single('file'), HemerografiaControlador.processTextAndImage);
 router.get('/search',HemerografiaControlador.getSugerencias)
+router.get('/listar-pendientes', HemerografiaControlador.listarPendientes);
 
 module.exports = router;
