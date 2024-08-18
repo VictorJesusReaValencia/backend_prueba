@@ -2,7 +2,13 @@ const hemerografia = require("../models/hemerografia")
 const validator = require("validator")
 const fs = require("fs");
 const { constrainedMemory } = require("process");
+const  OpenAIApi  = require("openai");
 
+
+const openai = new OpenAIApi({
+    apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
+    organization: process.env.ORG // Rellena con tu ID de Organización si es necesario
+});
 const pruebaHemerografia = (req, res) => {
     return res.status(200).send({
         message: "Mensaje de prueba enviado"
@@ -65,6 +71,7 @@ const cargarFotografia = async (req, res) => {
 
         return res.status(200).json({
             status: "success",
+            message: "Foto registrada correctamente",
             archivos: req.files
         });
     } catch (error) {
@@ -647,6 +654,160 @@ const guardarPDF = async (req, res) => {
         });
     }
 };
+const getChatGPTResponse = async (req,res) => {
+
+    const texto = req.params.id
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: texto }],
+        });
+        console.log(response.choices[0].message.content)
+        return res.status(200).json({
+            status: "success",
+            message: response.choices[0].message.content,
+            
+        });
+    } catch (error) {
+        console.error('Error al hacer la solicitud a la API:', error.message);
+        return 'No se pudo obtener una respuesta de ChatGPT.';
+    }
+};
+
+const getTranscriptionFromImage = async (req, res) => {
+    try {
+        // Asegurarse de que se haya enviado un archivo
+        if (!req.file) {
+            return res.status(400).json({
+                status: "error",
+                message: "No se ha enviado ninguna imagen."
+            });
+        }
+
+        // Obtener la ruta temporal de la imagen subida
+        const imagePath = req.file.path;
+
+        // Leer la imagen y convertirla a base64
+        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
+
+        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
+        const response = await  openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: "Dame la transcripcion de esta imagen, solo contesta con el texto de la transcripcion"
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageData}`
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens: 300
+        });
+
+        // Mostrar la respuesta en la consola
+        console.log(response.choices[0].message);
+
+        return res.status(200).json({
+            status: "success",
+            transcription: response.choices[0].message.content,
+        });
+    } catch (error) {
+        console.error('Error al hacer la solicitud a la API:', error.message);
+        return res.status(500).json({
+            status: "error",
+            message: 'No se pudo obtener una transcripción de la imagen.',
+            error: error
+        });
+    }
+};
+const processTextAndImage = async (req, res) => {
+    const texto = req.params.id;
+    
+    try {
+        // Asegurarse de que se haya enviado un archivo de imagen
+        if (!req.file) {
+            return res.status(400).json({
+                status: "error",
+                message: "No se ha enviado ninguna imagen."
+            });
+        }
+
+        // Obtener la ruta temporal de la imagen subida
+        const imagePath = req.file.path;
+
+        // Leer la imagen y convertirla a base64
+        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
+
+        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
+        const response = await  openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: texto
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageData}`
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens: 300
+        });
+
+        // Mostrar la respuesta en la consola
+        console.log(response.choices[0].message.content);
+
+        return res.status(200).json({
+            status: "success",
+            message: response.choices[0].message.content,
+        });
+    } catch (error) {
+        console.error('Error al hacer la solicitud a la API:', error.message);
+        return res.status(500).json({
+            status: "error",
+            message: 'No se pudo obtener una respuesta de ChatGPT.',
+            error: error
+        });
+    }
+};
+
+
+const getSugerencias = async (req, res) => {
+    try {
+        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
+        if (!query || !campo) {
+            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
+        }
+
+        // Crear un objeto de búsqueda dinámico basado en el campo y la query
+        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
+
+        // Buscar nombres únicos en el campo especificado que coincidan con la query
+        const resultados = await hemerografia.distinct(campo, criterioBusqueda);
+
+        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar en la base de datos' });
+    }
+};
+
+
 
 module.exports={
     pruebaHemerografia,
@@ -667,6 +828,10 @@ module.exports={
     actualizarInstitucion,
     obtenerSeccionesRecortes,
     listarPorSeccion,
-    guardarPDF
+    guardarPDF,
+    getChatGPTResponse,
+    getTranscriptionFromImage,
+    processTextAndImage,
+    getSugerencias
 }
 

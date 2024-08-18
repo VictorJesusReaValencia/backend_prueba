@@ -111,7 +111,6 @@ const HemerografiaSchema = new Schema({
     transcripcion: {
         type: String,
     },
-    
     numero_registro: {
       type: Number,
   },
@@ -130,6 +129,15 @@ const HemerografiaSchema = new Schema({
         }
       }
     ],
+    mostrar: {
+      type: String,
+    },
+    editar: {
+      type: String,
+    },
+    revisado: {
+      type: String,
+    },
   });
 
 

@@ -35,7 +35,7 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
-
+const upload = multer({ dest: 'imagenes/' });
 router.get('/prueba-hemerografia', HemerografiaControlador.pruebaHemerografia);
 router.post("/registrar", HemerografiaControlador.registrarHemerografia);
 router.post('/registrar-imagen/:id', [subidas.array("files", 10)], HemerografiaControlador.cargarFotografia); // Permite hasta 10 archivos
@@ -55,5 +55,9 @@ router.put('/actualizar-institucion/:institucionanterior/:institucionueva', Heme
 router.get('/listar-secciones', HemerografiaControlador.obtenerSeccionesRecortes);
 router.get('/listar/seccion/:id', HemerografiaControlador.listarPorSeccion);
 router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], HemerografiaControlador.guardarPDF); // Permite hasta 10 archivos
+router.get('/gpt/amado-nervo/:id', HemerografiaControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), HemerografiaControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), HemerografiaControlador.processTextAndImage);
+router.get('/search',HemerografiaControlador.getSugerencias)
 
 module.exports = router;
