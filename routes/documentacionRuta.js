@@ -35,6 +35,8 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
+const upload = multer({ dest: 'imagenes/' });
+
 
 router.get('/prueba-documentacion', DocumentacionControlador.pruebaDocumentacion);
 router.post("/registrar", DocumentacionControlador.registrarDocumentacion);
