@@ -634,7 +634,7 @@ const getSugerencias = async (req, res) => {
         const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
 
         // Buscar nombres únicos en el campo especificado que coincidan con la query
-        const resultados = await hemerografia.distinct(campo, criterioBusqueda);
+        const resultados = await documentacion.distinct(campo, criterioBusqueda);
 
         res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
     } catch (error) {
@@ -645,7 +645,7 @@ const getSugerencias = async (req, res) => {
 const listarPendientes = async (req, res) => {
     try {
         // Encontrar todos los elementos que tienen algo en el campo pendiente
-        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
+        let pendientes = await documentacion.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
 
         if (!pendientes || pendientes.length === 0) {
             return res.status(404).json({
