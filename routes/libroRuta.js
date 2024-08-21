@@ -35,7 +35,7 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
-
+const upload = multer({ dest: 'imagenes/' });
 router.get('/prueba-libros', LibrosControlador.pruebaLibros);
 router.post("/registrar", LibrosControlador.registrarLibros);
 router.post('/registrar-imagen/:id', [subidas.array("files", 10)], LibrosControlador.cargarFotografia); // Permite hasta 10 archivos
