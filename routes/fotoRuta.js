@@ -55,6 +55,11 @@ router.get('/:institucionId/:id', pruebaControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', pruebaControlador.obtenerNumeroDeBienesTotales);
 
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', pruebaControlador.actualizarInstitucion);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], pruebaControlador.guardarPDF); // Permite hasta 10 archivos
 router.get('/gpt/amado-nervo/:id', pruebaControlador.getChatGPTResponse);
 router.post('/gpt/gpt/transcripcion', upload.single('file'), pruebaControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), pruebaControlador.processTextAndImage);
+router.get('/search',pruebaControlador.getSugerencias)
+router.get('/listar-pendientes', pruebaControlador.listarPendientes);
+
 module.exports = router;

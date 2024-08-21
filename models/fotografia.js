@@ -85,6 +85,15 @@ const FotoSchema = new Schema({
     pendientes: {
       type: String,
     },
+    mostrar: {
+      type: String,
+    },
+    editar: {
+      type: String,
+    },
+    revisado: {
+      type: String,
+    },
   });
 
 
