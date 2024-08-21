@@ -51,4 +51,10 @@ router.get('/listar-temas-instituciones/:id', DocumentacionControlador.obtenerTe
 router.get('/:institucionId/:id', DocumentacionControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', DocumentacionControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', DocumentacionControlador.actualizarInstitucion);
+router.get('/gpt/amado-nervo/:id', DocumentacionControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), DocumentacionControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), DocumentacionControlador.processTextAndImage);
+router.get('/search',DocumentacionControlador.getSugerencias)
+router.get('/listar-pendientes', DocumentacionControlador.listarPendientes);
+
 module.exports = router;

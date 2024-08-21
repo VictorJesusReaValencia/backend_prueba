@@ -36,6 +36,9 @@ const almacenamiento = multer.diskStorage({
 
 const subidas = multer({ storage: almacenamiento });
 const upload = multer({ dest: 'imagenes/' });
+
+
+
 router.get('/prueba-hemerografia', HemerografiaControlador.pruebaHemerografia);
 router.post("/registrar", HemerografiaControlador.registrarHemerografia);
 router.post('/registrar-imagen/:id', [subidas.array("files", 10)], HemerografiaControlador.cargarFotografia); // Permite hasta 10 archivos

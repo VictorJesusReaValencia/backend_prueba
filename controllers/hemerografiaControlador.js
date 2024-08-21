@@ -8,6 +8,8 @@ const openai = new OpenAIApi({
     apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
     organization: process.env.ORG // Rellena con tu ID de Organización si es necesario
 });
+
+
 const pruebaHemerografia = (req, res) => {
     return res.status(200).send({
         message: "Mensaje de prueba enviado"
@@ -813,8 +815,10 @@ const getSugerencias = async (req, res) => {
         res.status(500).json({ error: 'Error al buscar en la base de datos' });
     }
 };
+
 const listarPendientes = async (req, res) => {
     try {
+        // Encontrar todos los elementos que tienen algo en el campo pendiente
         let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
 
         if (!pendientes || pendientes.length === 0) {
@@ -822,12 +826,17 @@ const listarPendientes = async (req, res) => {
                 status: "error",
                 message: "No se encontraron elementos pendientes"
             });
-        } 
+        }
 
-        // Filtrar elementos donde el campo revisado no sea "si"
+        // Contar cuántos elementos tienen revisado igual a "Sí"
+        const revisados = pendientes.filter(item => item.revisado === "Sí").length;
+
+        // Filtrar los elementos que no tienen revisado igual a "Sí"
         pendientes = pendientes.filter(item => item.revisado !== "Sí");
 
-        if (pendientes.length === 0) {
+        const totalPendientes = pendientes.length ;
+
+        if (totalPendientes === 0) {
             return res.status(404).json({
                 status: "error",
                 message: "No se encontraron elementos pendientes"
@@ -835,7 +844,7 @@ const listarPendientes = async (req, res) => {
         } else {
             return res.status(200).send({
                 status: "success",
-                totalPendientes: pendientes.length,
+                totalPendientes: totalPendientes - revisados, // Restar los revisados del total
                 pendientes
             });
         }

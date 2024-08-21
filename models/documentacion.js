@@ -114,6 +114,15 @@ const DocumentacionSchema = new Schema({
           }
         }
       ],
+      mostrar: {
+        type: String,
+      },
+      editar: {
+        type: String,
+      },
+      revisado: {
+        type: String,
+      },
 });
 
 module.exports = model("Documentacion", DocumentacionSchema, "documentacion");

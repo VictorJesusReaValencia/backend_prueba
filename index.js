@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require('path');
 require('dotenv').config(); // Cargar variables de entorno desde el archivo .env
+
 connection();
 
 // Crear servidor node
@@ -47,6 +48,7 @@ app.use("/api/iconografia", IconografiafiaRoutes)
 app.use("/api/hemerografia", HemerografiaRoutes)
 app.use('/api/fotografia', FotoRoutes);
 app.use("/api/user", userRoutes);
+
 
 // Arrancar el servidor
 app.listen(puerto, () => {
