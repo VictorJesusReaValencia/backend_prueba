@@ -112,6 +112,18 @@ const CorrespondenciaSchema = new Schema({
           }
         }
       ],
+      mostrar: {
+        type: String,
+      },
+      editar: {
+        type: String,
+      },
+      revisado: {
+        type: String,
+      },
+      pendientes: {
+        type: String,
+      },
 });
 
 module.exports = model("Correspondencia", CorrespondenciaSchema, "correspondencia");

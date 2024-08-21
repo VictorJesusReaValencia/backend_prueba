@@ -153,5 +153,14 @@ const LibrosSchema = new Schema({
           }
         }
       ],
+      mostrar: {
+        type: String,
+      },
+      editar: {
+        type: String,
+      },
+      revisado: {
+        type: String,
+      },
 });
 module.exports = model("Libros", LibrosSchema, "libros");
