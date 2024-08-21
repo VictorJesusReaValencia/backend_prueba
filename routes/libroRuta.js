@@ -51,5 +51,10 @@ router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInst
 router.get('/:institucionId/:id', LibrosControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', LibrosControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', LibrosControlador.actualizarInstitucion);
-
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.guardarPDF); // Permite hasta 10 archivos
+router.get('/gpt/amado-nervo/:id', LibrosControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), LibrosControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), LibrosControlador.processTextAndImage);
+router.get('/search',LibrosControlador.getSugerencias)
+router.get('/listar-pendientes', LibrosControlador.listarPendientes);
 module.exports = router;
