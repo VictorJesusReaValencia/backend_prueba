@@ -35,6 +35,7 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
+const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-partituras', PartiturasControlador.pruebaPartituras);
 router.post("/registrar", PartiturasControlador.registrarPartituras);
@@ -50,6 +51,11 @@ router.get('/listar-temas-instituciones/:id', PartiturasControlador.obtenerTemas
 router.get('/:institucionId/:id', PartiturasControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', PartiturasControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', PartiturasControlador.actualizarInstitucion);
-
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], PartiturasControlador.guardarPDF); // Permite hasta 10 archivos
+router.get('/gpt/amado-nervo/:id', PartiturasControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), PartiturasControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), PartiturasControlador.processTextAndImage);
+router.get('/search',PartiturasControlador.getSugerencias)
+router.get('/listar-pendientes', PartiturasControlador.listarPendientes);
 
 module.exports = router;

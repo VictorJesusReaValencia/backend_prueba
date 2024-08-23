@@ -89,6 +89,15 @@ const IconografiaSchema = new Schema({
     },
     pendientes: {
         type: String,
-    }
+    },
+    mostrar: {
+    type: String,
+    },
+    editar: {
+    type: String,
+    },
+    revisado: {
+    type: String,
+    },
 });
 module.exports = model("Iconografia", IconografiaSchema, "iconografia");

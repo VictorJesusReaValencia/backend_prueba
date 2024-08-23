@@ -57,4 +57,7 @@ router.post('/gpt/gpt/transcripcion', upload.single('file'), LibrosControlador.g
 router.post('/gpt/image-text/:id', upload.single('file'), LibrosControlador.processTextAndImage);
 router.get('/search',LibrosControlador.getSugerencias)
 router.get('/listar-pendientes', LibrosControlador.listarPendientes);
+
+
+
 module.exports = router;

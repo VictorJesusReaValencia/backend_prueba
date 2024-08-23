@@ -35,6 +35,7 @@ const almacenamiento = multer.diskStorage({
 });
 
 const subidas = multer({ storage: almacenamiento });
+const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-objetos', ObjetosControlador.pruebaObjetos);
 router.post("/registrar", ObjetosControlador.registrarObjetos);
@@ -50,5 +51,11 @@ router.get('/listar-temas-instituciones/:id', ObjetosControlador.obtenerTemasIns
 router.get('/:institucionId/:id', ObjetosControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', ObjetosControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', ObjetosControlador.actualizarInstitucion);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], ObjetosControlador.guardarPDF); // Permite hasta 10 archivos
+router.get('/gpt/amado-nervo/:id', ObjetosControlador.getChatGPTResponse);
+router.post('/gpt/gpt/transcripcion', upload.single('file'), ObjetosControlador.getTranscriptionFromImage);
+router.post('/gpt/image-text/:id', upload.single('file'), ObjetosControlador.processTextAndImage);
+router.get('/search',ObjetosControlador.getSugerencias)
+router.get('/listar-pendientes', ObjetosControlador.listarPendientes);
 
 module.exports = router;

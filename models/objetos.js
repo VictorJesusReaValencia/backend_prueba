@@ -70,7 +70,16 @@ const ObjetosSchema = new Schema({
     },
     pendientes:{
         type: String,
-    }
+    },
+    mostrar: {
+        type: String,
+      },
+      editar: {
+        type: String,
+      },
+      revisado: {
+        type: String,
+      },
 });
 
 module.exports = model("Objetos", ObjetosSchema, "objetos");

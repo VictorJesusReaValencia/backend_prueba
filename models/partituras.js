@@ -86,7 +86,16 @@ const PartiturasSchema = new Schema({
     },
     descripcion_contexto: {
         type: String,
-    }
+    },
+    mostrar: {
+        type: String,
+    },
+    editar: {
+    type: String,
+    },
+    revisado: {
+    type: String,
+    },
 });
 
 module.exports = model("Partituras", PartiturasSchema, "partituras");
