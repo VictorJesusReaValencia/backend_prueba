@@ -1,144 +1,54 @@
 const { Schema, model} = require("mongoose")
 
-
 const HemerografiaSchema = new Schema({
-    titulo: {
-      type: String,
-    },
-    autor: {
-      type: String,
-    },
-    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
-      {
-        nombre: {
-          type: String,
-          required: true,
-        },
-        fileId: {
-          type: String,
-          required: true,
-        }
-      }
-    ],
-    pais: {
-      type: String,
-      required: true
-    },
-    ciudad: {
-      type: String,
-      required: true
-    },
-    institucion: {
-      type: String,
-    },
-    ubicacion_fisica: {
-      type: String,
-    },
-    fecha_publicacion: {
-      type: Date,
-    },
-    lugar_publicacion: {
-      type: String,
-    },
-    mes: {
-      type: Number,
-    },
-    dia: {
-      type: Number,
-    },
-    fecha_adquisicion: {
-      type: Number,
-    },
-    coleccion: {
-      type: String,
-    },
-    tipo_bien: {
-      type: String,
-      default: "Hemerografía"
-    },
-    hallazgo: {
-      type: String,
-      default: "No"
-    },
-    persona_registra: {
-      type: String,
-    },
-    tema: {
-      type: String,
-    },
-    nombre_periodico: {
-      type: String,
-    },
-    numero_paginas: {
-      type: String,
-    },
-    numero_edicion: {
-      type: String,
-    },
-    numero_publicacion: {
-        type: String,
-    },
-    numero_carpeta: {
-      type: String,
-    },
-    genero_periodistico: {
-        type: String,
-    },
-    literarios: {
-        type: String,
-    },
-    seudonimos: {
-        type: String,
-      },
-    encabezado: {
-    type: String,
-    },
-    seccion: {
-        type: String,
-    },
-    columnas: {
-        type: String,
-    },
-    colaboradores: {
-        type: String,
-    },
-    periodicidad: {
-        type: String,
-    },
-    resumen:{
-        type: String,
-    },
-    transcripcion: {
-        type: String,
-    },
-    numero_registro: {
-      type: Number,
-  },
-    pendiente: {
-      type: String,
-    },
-    pdfs: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
-      {
-        nombre: {
-          type: String,
-          required: true,
-        },
-        ruta: {
-          type: String,
-          required: true,
-        }
-      }
-    ],
-    mostrar: {
-      type: String,
-    },
-    editar: {
-      type: String,
-    },
-    revisado: {
-      type: String,
-    },
-  });
-
+  autor: { type: String },
+  ciudad: { type: String, required: true },
+  coleccion: { type: String },
+  columnas: { type: String },
+  editar: { type: String },
+  encabezado: { type: String },
+  fecha_adquisicion: { type: Number },
+  fecha_publicacion: { type: Date },
+  genero_periodistico: { type: String },
+  hallazgo: { type: String, default: "No" },
+  images: [
+    {
+      nombre: { type: String, required: true },
+      fileId: { type: String, required: true }
+    }
+  ],
+  institucion: { type: String },
+  lugar_publicacion: { type: String },
+  mostrar: { type: String },
+  nombre_periodico: { type: String },
+  numero_carpeta: { type: String },
+  numero_edicion: { type: String },
+  numero_paginas: { type: String },
+  numero_registro: { type: Number },
+  pais: { type: String},
+  pendiente: { type: String },
+  periodicidad: { type: String },
+  persona_registra: { type: String },
+  pdfs: [
+    {
+      nombre: { type: String, },
+      ruta: { type: String, }
+    }
+  ],
+  revisado: { type: String, default: "No" },
+  resumen: { type: String },
+  seccion: { type: String },
+  seudonimos: { type: String },
+  tema: { type: String },
+  tipo_bien: { type: String, default: "Hemerografía" },
+  transcripcion: { type: String },
+  ubicacion_fisica: { type: String },
+  imagenes_fb: [{
+      nombre: { type: String, maxlength: 50  },
+      url: { type: String }
+    }]
+});
 
 module.exports = model("Hemerografia",HemerografiaSchema,"hemerografia");
+
+// Hemerografica contiene 37 campos 
