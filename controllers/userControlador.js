@@ -153,11 +153,71 @@ const profile = async (req, res) => {
         });
     }
 };
+// controllers/user.js
+const actualizarRol = async (req, res) => {
+  const userId = req.user.id; // obtenido del token
+  try {
+    const usuario = await User.findById(userId);
+    if (!usuario) {
+      return res.status(404).json({ status: "error", message: "Usuario no encontrado" });
+    }
+
+    usuario.role = "premium";
+    await usuario.save();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Rol actualizado a premium",
+      user: {
+        id: usuario._id,
+        nombre: usuario.nombre,
+        role: usuario.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error al actualizar el rol",
+      error: error.message
+    });
+  }
+};
+
+const regresarARolGratis = async (req, res) => {
+  const userId = req.user.id; // obtenido del token
+  try {
+    const usuario = await User.findById(userId);
+    if (!usuario) {
+      return res.status(404).json({ status: "error", message: "Usuario no encontrado" });
+    }
+
+    usuario.role = "gratis"; // o "gratis", según tu convención
+    await usuario.save();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Rol actualizado a usuario gratis",
+      user: {
+        id: usuario._id,
+        nombre: usuario.nombre,
+        role: usuario.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error al actualizar el rol",
+      error: error.message
+    });
+  }
+};
 
 // Exportar acciones
 module.exports = {
     pruebaUser,
     register,
     login,
-    profile
+    profile,
+    actualizarRol,
+    regresarARolGratis
 }

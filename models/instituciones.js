@@ -47,7 +47,11 @@ const InstitucionesSchema = new Schema({
     },
     pagina_web: {
         type: String,
-    }
+    },
+    imagenes_fb: [{
+      nombre: { type: String, maxlength: 100  },
+      url: { type: String }
+    }],
 });
 
 module.exports = model("Instituciones", InstitucionesSchema, "Instituciones");

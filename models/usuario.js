@@ -12,10 +12,11 @@ const UsuarioSchema = new Schema({
       required:true,
     },
     role: {
-      type: String,
-      default:"role_user",
-      required: true
-    },
+     type: String,
+     enum: ["admin", "gratis", "premium"],
+     default: "gratis",
+     required: true}
+    ,
     password: {
       type: String,
       required:true
@@ -23,7 +24,10 @@ const UsuarioSchema = new Schema({
     image: {
         type: String,
         default:"default.jpg"
-    }
+    },
+    fechaSubscripcion: { type: Date },
+metodoPago: { type: String }
+
   });
 
 

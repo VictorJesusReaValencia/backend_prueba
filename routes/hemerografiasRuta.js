@@ -23,6 +23,7 @@ router.put('/editar/:id', HemerografiaControlador.editarHemerografia);
 router.post('/editar-imagen/:id', [subidas.array("files", 10)], HemerografiaControlador.editarFotografia); // Permite hasta 10 archivos
 router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], HemerografiaControlador.editarPDFs); // Permite hasta 10 archivos
 
+router.get("/buscar", HemerografiaControlador.buscarHemerografia);
 
 router.get('/listar-temas', HemerografiaControlador.obtenerTemasHemerografia);
 router.get('/tema/:id', HemerografiaControlador.listarPorTema);

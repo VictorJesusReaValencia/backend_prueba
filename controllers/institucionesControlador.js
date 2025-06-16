@@ -1,6 +1,10 @@
 const instituciones = require("../models/instituciones")
 const validator = require("validator")
 const fs = require("fs")
+const bucket = require('../database/firebase_config'); // Asegúrate de tener este archivo
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const sharp = require("sharp");
 
 const pruebaInstituciones = (req, res) => {
     return res.status(200).send({
@@ -29,49 +33,188 @@ const registrarInstituciones = async (req,res) =>{
     }
 }
 const cargarFotografia = async (req, res) => {
-    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
-    let archivos = req.files;
+    const archivos = req.files;
+    const id = req.params.id;
 
-    // Validar extensiones de archivos
-    for (let archivo of archivos) {
-        let archivo_split = archivo.originalname.split(".");
-        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
-        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
-            fs.unlink(archivo.path, (error) => {
-                // Borrar todos los archivos en caso de error de validación
-                for (let file of archivos) {
-                    fs.unlink(file.path, () => {});
-                }
-                return res.status(500).json({
-                    status: "error",
-                    message: "Extensión de archivo no permitida",
-                    extension
-                });
-            });
-            return;
-        }
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ninguna foto"
+        });
     }
 
-    // Si todas las extensiones son válidas, guardar los archivos y responder con éxito
+    const urlsFirebase = [];
+
     try {
-        // Aquí puedes agregar lógica adicional para procesar las imágenes si es necesario
+        const doc = await instituciones.findById(id);
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Registro no encontrado"
+            });
+        }
+
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombrePeriodico = limpiarTexto(doc.nombre);
+        const encabezado = limpiarTexto(doc.encabezado);
+
+        for (let archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (!["png", "jpg", "jpeg", "gif"].includes(extension)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Extensión no permitida",
+                    extension
+                });
+            }
+
+            const bufferOptimizado = await sharp(archivo.buffer)
+                .resize({ width: 1200 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
+
+            // 🧠 Generar nombre limitado a 50 caracteres (sin contar timestamp)
+            let baseName = `Institucion_${nombrePeriodico}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 40);
+            }
+
+            const timestamp = Date.now();
+            const nombreFirebase = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+
+            const file = bucket.file(nombreFirebase);
+
+            await file.save(bufferOptimizado, {
+                metadata: {
+                    contentType: "image/jpeg",
+                    metadata: { firebaseStorageDownloadTokens: uuid }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombreFirebase)}?alt=media&token=${uuid}`;
+
+            urlsFirebase.push({ nombre: nombreFirebase, url });
+        }
+
+        doc.imagenes_fb = urlsFirebase;
+        await doc.save();
 
         return res.status(200).json({
             status: "success",
-            archivos: req.files
+            message: "Fotos subidas y guardadas correctamente",
+            imagenes_fb: urlsFirebase
         });
+
     } catch (error) {
-        // Borrar todos los archivos en caso de error
-        for (let file of archivos) {
-            fs.unlink(file.path, () => {});
-        }
+        console.error("❌ Error al subir o guardar imágenes:", error);
         return res.status(500).json({
             status: "error",
-            message: "Error en el servidor",
+            message: "Error al procesar imágenes",
             error
         });
     }
 };
+const editarFotografia = async (req, res) => {
+    const archivos = req.files;
+    const id = req.params.id;
+
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ninguna foto"
+        });
+    }
+
+    const urlsFirebase = [];
+
+    try {
+        const doc = await instituciones.findById(id);
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Registro no encontrado"
+            });
+        }
+
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombreInstitucion = limpiarTexto(doc.nombre);
+
+        // 🧹 Eliminar imágenes anteriores de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                }
+            }
+        }
+
+        // 🆕 Subir nuevas imágenes
+        for (const archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (!["png", "jpg", "jpeg", "gif"].includes(extension)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Extensión no permitida",
+                    extension
+                });
+            }
+
+            const bufferOptimizado = await sharp(archivo.buffer)
+                .resize({ width: 1200 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
+
+            const timestamp = Date.now().toString(); // ejemplo: 1749931843652
+            const prefijo = "Institucion_"; // longitud = 11
+            const maxLongBaseName = 50 - prefijo.length - 1 - timestamp.length; // -1 por "_"
+            const baseNameTruncado = nombreInstitucion.slice(0, maxLongBaseName);
+            const nombreFirebase = `${prefijo}${baseNameTruncado}_${timestamp}`;
+
+            const uuid = uuidv4();
+            const file = bucket.file(nombreFirebase);
+
+            await file.save(bufferOptimizado, {
+                metadata: {
+                    contentType: "image/jpeg",
+                    metadata: { firebaseStorageDownloadTokens: uuid }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombreFirebase)}?alt=media&token=${uuid}`;
+
+            urlsFirebase.push({ nombre: nombreFirebase, url });
+        }
+
+        // 💾 Guardar nuevas imágenes en MongoDB
+        doc.imagenes_fb = urlsFirebase;
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Fotos actualizadas correctamente",
+            imagenes_fb: urlsFirebase
+        });
+
+    } catch (error) {
+        console.error("❌ Error en editarFotografia:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error desconocido",
+            error
+        });
+    }
+};
+
 const borrarInstituciones = async (req, res) => {
     const id = req.params.id;
 
@@ -302,6 +445,7 @@ module.exports={
     listarPorTema,
     listarPorPais,
     obtenerInstitucionesPorNombre,
-    listarTodo
+    listarTodo,
+    editarFotografia
 }
 

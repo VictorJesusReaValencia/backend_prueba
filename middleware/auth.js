@@ -33,12 +33,13 @@ exports.auth = (req, res, next) => {
         req.user = payload;
 
     } catch (ex) {
-        return res.status(404).send({
-            status: "error",
-            message: "El token no es válido",
-            error
-        });
-    }
+    return res.status(404).send({
+        status: "error",
+        message: "El token no es válido",
+        error: ex.message
+    });
+}
+
 
     // Pasar al siguiente middleware
     next();

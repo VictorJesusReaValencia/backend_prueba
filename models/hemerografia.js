@@ -9,6 +9,7 @@ const HemerografiaSchema = new Schema({
   encabezado: { type: String },
   fecha_adquisicion: { type: Number },
   fecha_publicacion: { type: Date },
+  fecha_registro: { type: Date, default: Date.now }, // nueva: cuándo se registró
   genero_periodistico: { type: String },
   hallazgo: { type: String, default: "No" },
   images: [
@@ -44,9 +45,23 @@ const HemerografiaSchema = new Schema({
   transcripcion: { type: String },
   ubicacion_fisica: { type: String },
   imagenes_fb: [{
-      nombre: { type: String, maxlength: 50  },
+      nombre: { type: String, maxlength: 60  },
       url: { type: String }
-    }]
+    }],
+  revisiones: [ // nueva: historial de revisiones
+  {
+    persona: { type: String, required: true },
+    fecha: { type: Date, default: Date.now },
+    observacion: { type: String },
+    revision_resuelta: {type: Boolean, default: false},
+    tipo_revision: { type: String }
+  }
+  ],
+  ultima_actualizacion: {
+    fecha: { type: Date },
+    por: { type: String }
+  }
+
 });
 
 module.exports = model("Hemerografia",HemerografiaSchema,"hemerografia");

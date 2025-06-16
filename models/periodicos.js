@@ -5,15 +5,15 @@ const PeriodicosSchema = new Schema({
         type: String,
         required: true,
     },
-    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
+    imagenes_fb: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
         {
           nombre: {
             type: String,
-            required: true,
+           
           },
-          fileId: {
+          url: {
             type: String,
-            required: true,
+            
           }
         }
       ],
