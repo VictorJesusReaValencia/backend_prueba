@@ -260,8 +260,7 @@ const editarFotografia = async (req, res) => {
         const limpiarTexto = (texto) =>
             texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
 
-        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
-        const encabezado = limpiarTexto(doc.encabezado);
+        const remitente = limpiarTexto(doc.remitente);
 
         // 🧹 Eliminar imágenes anteriores de Firebase
         if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
@@ -294,7 +293,7 @@ const editarFotografia = async (req, res) => {
                 .toBuffer();
 
             // 📛 Generar nombre truncado
-            let baseName = `Hemerografia_${nombrePeriodico}_${encabezado}`;
+            let baseName = `Correspondencia_${remitente}`;
             if (baseName.length > 50) {
                 baseName = baseName.slice(0, 50);
             }
@@ -376,8 +375,7 @@ const editarPDFs = async (req, res) => {
         const limpiarTexto = (texto) =>
             texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
 
-        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
-        const encabezado = limpiarTexto(doc.encabezado);
+        const remitente = limpiarTexto(doc.remitente);
 
         // 📤 Subir nuevos PDFs
         for (const archivo of archivos) {
@@ -390,7 +388,7 @@ const editarPDFs = async (req, res) => {
                 });
             }
 
-            let baseName = `Correspondencia_PDF_${nombrePeriodico}_${encabezado}`;
+            let baseName = `Correspondencia_PDF_${remitente}`;
             if (baseName.length > 50) {
                 baseName = baseName.slice(0, 50);
             }

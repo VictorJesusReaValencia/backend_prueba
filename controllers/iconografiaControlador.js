@@ -72,8 +72,7 @@ const cargarFotografia = async (req, res) => {
         const limpiarTexto = (texto) =>
             texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
 
-        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
-        const encabezado = limpiarTexto(doc.encabezado);
+        const titulo = limpiarTexto(doc.titulo);
 
         for (let archivo of archivos) {
             const extension = archivo.originalname.split(".").pop().toLowerCase();
@@ -91,7 +90,7 @@ const cargarFotografia = async (req, res) => {
                 .toBuffer();
 
             // 🧠 Generar nombre limitado a 50 caracteres (sin contar timestamp)
-            let baseName = `Iconografia_${nombrePeriodico}_${encabezado}`;
+            let baseName = `Iconografia_${titulo}`;
             if (baseName.length > 50) {
                 baseName = baseName.slice(0, 50);
             }
