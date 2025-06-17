@@ -1,4 +1,4 @@
-const { Schema, model} = require("mongoose")
+const { Schema, model } = require("mongoose")
 
 const HemerografiaSchema = new Schema({
   autor: { type: String },
@@ -26,7 +26,7 @@ const HemerografiaSchema = new Schema({
   numero_edicion: { type: String },
   numero_paginas: { type: String },
   numero_registro: { type: Number },
-  pais: { type: String},
+  pais: { type: String },
   pendiente: { type: String },
   periodicidad: { type: String },
   persona_registra: { type: String },
@@ -45,17 +45,17 @@ const HemerografiaSchema = new Schema({
   transcripcion: { type: String },
   ubicacion_fisica: { type: String },
   imagenes_fb: [{
-      nombre: { type: String, maxlength: 60  },
-      url: { type: String }
-    }],
+    nombre: { type: String, maxlength: 50 },
+    url: { type: String }
+  }],
   revisiones: [ // nueva: historial de revisiones
-  {
-    persona: { type: String, required: true },
-    fecha: { type: Date, default: Date.now },
-    observacion: { type: String },
-    revision_resuelta: {type: Boolean, default: false},
-    tipo_revision: { type: String }
-  }
+    {
+      persona: { type: String, required: true },
+      fecha: { type: Date, default: Date.now },
+      observacion: { type: String },
+      revision_resuelta: { type: Boolean, default: false },
+      tipo_revision: { type: String }
+    }
   ],
   ultima_actualizacion: {
     fecha: { type: Date },
@@ -64,6 +64,4 @@ const HemerografiaSchema = new Schema({
 
 });
 
-module.exports = model("Hemerografia",HemerografiaSchema,"hemerografia");
-
-// Hemerografica contiene 37 campos 
+module.exports = model("Hemerografia", HemerografiaSchema, "hemerografia");

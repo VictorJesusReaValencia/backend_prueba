@@ -6,6 +6,10 @@ const pruebaControlador = require("../controllers/fotoControlador")
 const fs = require('fs');
 const router = express.Router();
 
+const memoryStorage = multer.memoryStorage();
+const subidas = multer({ storage: memoryStorage }); // Ahora sube directo desde memoria
+const upload = multer({ dest: 'imagenes/' });
+
 const almacenamiento = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./imagenes/fotografias");
@@ -34,8 +38,6 @@ const almacenamiento = multer.diskStorage({
   }
 });
 
-const subidas = multer({ storage: almacenamiento });
-const upload = multer({ dest: 'imagenes/' });
 router.get('/prueba-foto', pruebaControlador.pruebaFoto);
 router.get('/listar-foto', pruebaControlador.listar);
 router.post('/registrar-foto', pruebaControlador.registrarfoto2);
@@ -46,7 +48,7 @@ router.get('/listar-temas', pruebaControlador.obtenerTemas);
 router.get('/listar-albumes', pruebaControlador.obtenerAlbumes);
 router.get('/album/:id', pruebaControlador.listarPorAlbum);
 router.get('/tema/:id', pruebaControlador.listarPorTema);
-router.delete('/borrar-foto/:id', pruebaControlador.borrar);
+router.delete('/borrar-foto/:id', pruebaControlador.borrarFoto);
 router.put('/editar-foto/:id', pruebaControlador.editar);
 router.get('/numero-por-pais/:id', pruebaControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', pruebaControlador.obtenerNumeroDeFotosPorInstitucion);
@@ -59,7 +61,12 @@ router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], pruebaControlador
 router.get('/gpt/amado-nervo/:id', pruebaControlador.getChatGPTResponse);
 router.post('/gpt/gpt/transcripcion', upload.single('file'), pruebaControlador.getTranscriptionFromImage);
 router.post('/gpt/image-text/:id', upload.single('file'), pruebaControlador.processTextAndImage);
-router.get('/search',pruebaControlador.getSugerencias)
+router.get('/search', pruebaControlador.getSugerencias)
 router.get('/listar-pendientes', pruebaControlador.listarPendientes);
+
+router.put('/editar/:id', pruebaControlador.editarFoto);
+
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], pruebaControlador.editarFotografia); // Permite hasta 10 archivos
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], pruebaControlador.editarPDFs); // Permite hasta 10 archivos
 
 module.exports = router;

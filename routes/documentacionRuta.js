@@ -6,6 +6,11 @@ const DocumentacionControlador = require("../controllers/documentacionControlado
 const router = express.Router();
 const fs = require('fs');
 
+const memoryStorage = multer.memoryStorage();
+const subidas = multer({ storage: memoryStorage }); // Ahora sube directo desde memoria
+
+const upload = multer({ dest: 'imagenes/' });
+
 const almacenamiento = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./imagenes/documentacion");
@@ -34,15 +39,16 @@ const almacenamiento = multer.diskStorage({
   }
 });
 
-const subidas = multer({ storage: almacenamiento });
-const upload = multer({ dest: 'imagenes/' });
-
-
 router.get('/prueba-documentacion', DocumentacionControlador.pruebaDocumentacion);
 router.post("/registrar", DocumentacionControlador.registrarDocumentacion);
 router.post('/registrar-imagen/:id', [subidas.array("files", 10)], DocumentacionControlador.cargarFotografia); // Permite hasta 10 archivos
 router.delete('/borrar/:id', DocumentacionControlador.borrarDocumentacion);
 router.put('/editar/:id', DocumentacionControlador.editarDocumentacion);
+
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], DocumentacionControlador.editarFotografia); // Permite hasta 10 archivos
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], DocumentacionControlador.editarPDFs); // Permite hasta 10 archivos
+
+
 router.get('/listar-temas', DocumentacionControlador.obtenerTemasDocumentacion);
 router.get('/tema/:id', DocumentacionControlador.listarPorTema);
 router.get('/docu/:id', DocumentacionControlador.obtenerDocumentacionPorID);

@@ -34,7 +34,8 @@ const almacenamiento = multer.diskStorage({
   }
 });
 
-const subidas = multer({ storage: almacenamiento });
+const memoryStorage = multer.memoryStorage();
+const subidas = multer({ storage: memoryStorage });
 const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-partituras', PartiturasControlador.pruebaPartituras);
@@ -57,5 +58,8 @@ router.post('/gpt/gpt/transcripcion', upload.single('file'), PartiturasControlad
 router.post('/gpt/image-text/:id', upload.single('file'), PartiturasControlador.processTextAndImage);
 router.get('/search',PartiturasControlador.getSugerencias)
 router.get('/listar-pendientes', PartiturasControlador.listarPendientes);
+
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], PartiturasControlador.editarFotografia); // Permite hasta 10 archivos
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], PartiturasControlador.editarPDFs); // Permite hasta 10 archivos
 
 module.exports = router;

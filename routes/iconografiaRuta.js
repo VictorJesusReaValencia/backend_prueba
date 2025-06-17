@@ -34,7 +34,9 @@ const almacenamiento = multer.diskStorage({
   }
 });
 
-const subidas = multer({ storage: almacenamiento });
+
+const memoryStorage = multer.memoryStorage();
+const subidas = multer({ storage: memoryStorage }); // Ahora sube directo desde memoria
 const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-iconografia', IconografiaControlador.pruebaIconografia);
@@ -57,5 +59,8 @@ router.post('/gpt/gpt/transcripcion', upload.single('file'), IconografiaControla
 router.post('/gpt/image-text/:id', upload.single('file'), IconografiaControlador.processTextAndImage);
 router.get('/search',IconografiaControlador.getSugerencias)
 router.get('/listar-pendientes', IconografiaControlador.listarPendientes);
+
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], IconografiaControlador.editarPDFs); // Permite hasta 10 archivos
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], IconografiaControlador.editarFotografia); // Permite hasta 10 archivos
 
 module.exports = router;

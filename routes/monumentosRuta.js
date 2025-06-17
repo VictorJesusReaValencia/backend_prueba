@@ -33,8 +33,8 @@ const almacenamiento = multer.diskStorage({
     }
   }
 });
-
-const subidas = multer({ storage: almacenamiento });
+const memoryStorage = multer.memoryStorage();
+const subidas = multer({ storage: memoryStorage });
 const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-monumentos', MonumentosControlador.pruebaMonumentos);
@@ -57,4 +57,9 @@ router.post('/gpt/gpt/transcripcion', upload.single('file'), MonumentosControlad
 router.post('/gpt/image-text/:id', upload.single('file'), MonumentosControlador.processTextAndImage);
 router.get('/search',MonumentosControlador.getSugerencias)
 router.get('/listar-pendientes', MonumentosControlador.listarPendientes);
+
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], MonumentosControlador.editarPDFs); // Permite hasta 10 archivos
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], MonumentosControlador.editarFotografia); // Permite hasta 10 archivos
+
+
 module.exports = router;

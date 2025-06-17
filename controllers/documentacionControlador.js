@@ -3,6 +3,9 @@ const validator = require("validator")
 const fs = require("fs")
 const path = require('path');
 const  OpenAIApi  = require("openai");
+const sharp = require("sharp");
+const { v4: uuidv4 } = require('uuid');
+const bucket = require('../database/firebase_config'); // Asegúrate de tener este archivo
 
 const openai = new OpenAIApi({
     apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
@@ -15,93 +18,120 @@ const pruebaDocumentacion = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
-const registrarDocumentacion = async (req,res) =>{
-    //Recojer parametros por post a guardar
+const registrarDocumentacion = async (req, res) => {
+    // Recojer parametros por post a guardar
     let parametros = req.body;
 
-    try{
-        const publicacion = new documentacion(parametros)
-        const publicacionGuardada = await publicacion.save()
-        return res.status(200).json({
-            status : "success",
-            message: "publicacion periodica guardada correctamente",
-            publicacionGuardada
-        })
-
-    }catch(erro){
-        return res.status(400).json({
-            status : "error",
-            mensaje: "Algo anda mal we",
-            parametros
-        })
-    }
-}
-const cargarFotografia = async (req, res) => {
-    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
-    let archivos = req.files;
-
-    // Validar extensiones de archivos
-    for (let archivo of archivos) {
-        let archivo_split = archivo.originalname.split(".");
-        let extension = archivo_split[archivo_split.length - 1].toLowerCase();
-        if (extension !== "png" && extension !== "jpg" && extension !== "jpeg" && extension !== "gif") {
-            fs.unlink(archivo.path, (error) => {
-                // Borrar todos los archivos en caso de error de validación
-                for (let file of archivos) {
-                    fs.unlink(file.path, () => {});
-                }
-                return res.status(500).json({
-                    status: "error",
-                    message: "Extensión de archivo no permitida",
-                    extension
-                });
-            });
-            return;
-        }
-    }
-
-    // Si todas las extensiones son válidas, guardar los archivos y responder con éxito
     try {
-        // Aquí puedes agregar lógica adicional para procesar las imágenes si es necesario
+        // Formatear el campo fecha_publicacion si está presente
+        if (parametros.fecha_publicacion) {
+            const fechaOriginal = new Date(parametros.fecha_publicacion);
+            parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        }
+
+        // Crear una nueva instancia del modelo y guardar en la base de datos
+        const publicacion = new documentacion(parametros);
+        const publicacionGuardada = await publicacion.save();
 
         return res.status(200).json({
             status: "success",
-            archivos: req.files
+            mensaje: "publicacion guardada correctamente",
+            publicacionGuardada
         });
+
     } catch (error) {
-        // Borrar todos los archivos en caso de error
-        for (let file of archivos) {
-            fs.unlink(file.path, () => {});
-        }
-        return res.status(500).json({
-            status: "error",
-            message: "Error en el servidor",
-            error
-        });
-    }
+    console.error("🔥 Error real:", error); // Para ver el mensaje en consola
+
+    return res.status(400).json({
+        status: "error",
+        mensaje: error.message || "Error desconocido",
+        error: error.errors || error,
+        parametros
+    });
+}
 };
-const borrarDocumentacion = async (req, res) => {
+const cargarFotografia = async (req, res) => {
+    const archivos = req.files;
     const id = req.params.id;
 
-    try {
-        let docu = await documentacion.findOneAndDelete({ _id: id });
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ninguna foto"
+        });
+    }
 
-        if (!docu) {
+    const urlsFirebase = [];
+
+    try {
+        const doc = await documentacion.findById(id);
+        if (!doc) {
             return res.status(404).json({
                 status: "error",
-                message: "Hemerografía no encontrada",
-                id
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                message: "Hemerografía borrada exitosamente"
+                message: "Registro no encontrado"
             });
         }
+
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
+        const encabezado = limpiarTexto(doc.encabezado);
+
+        for (let archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (!["png", "jpg", "jpeg", "gif"].includes(extension)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Extensión no permitida",
+                    extension
+                });
+            }
+
+            const bufferOptimizado = await sharp(archivo.buffer)
+                .resize({ width: 1200 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
+
+            // 🧠 Generar nombre limitado a 50 caracteres (sin contar timestamp)
+            let baseName = `Documentacion_${nombrePeriodico}_${encabezado}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 50);
+            }
+
+            const timestamp = Date.now();
+            const nombreFirebase = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+
+            const file = bucket.file(nombreFirebase);
+
+            await file.save(bufferOptimizado, {
+                metadata: {
+                    contentType: "image/jpeg",
+                    metadata: { firebaseStorageDownloadTokens: uuid }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombreFirebase)}?alt=media&token=${uuid}`;
+
+            urlsFirebase.push({ nombre: nombreFirebase, url });
+        }
+
+        doc.imagenes_fb = urlsFirebase;
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Fotos subidas y guardadas correctamente",
+            imagenes_fb: urlsFirebase
+        });
+
     } catch (error) {
+        console.error("❌ Error al subir o guardar imágenes:", error);
         return res.status(500).json({
             status: "error",
-            message: "Error al borrar la Hemerografía"
+            message: "Error al procesar imágenes",
+            error
         });
     }
 };
@@ -110,9 +140,9 @@ const editarDocumentacion = async (req, res) => {
     const datosActualizados = req.body;
 
     try {
-        let docu = await documentacion.findByIdAndUpdate(id, datosActualizados, { new: true });
+        let foto = await documentacion.findByIdAndUpdate(id, datosActualizados, { new: true });
 
-        if (!docu) {
+        if (!foto) {
             return res.status(404).json({
                 status: "error",
                 message: "Foto no encontrada"
@@ -121,13 +151,212 @@ const editarDocumentacion = async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 message: "Foto actualizada exitosamente",
-                docu
+                foto
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al actualizar la foto"
+            message: "Error al actualizar la hemerografía",
+            error: error.message || "Error desconocido"
+        });
+    }
+}
+const editarFotografia = async (req, res) => {
+    const archivos = req.files;
+    const id = req.params.id;
+
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ninguna foto"
+        });
+    }
+
+    const urlsFirebase = [];
+
+    try {
+        const doc = await documentacion.findById(id);
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Registro no encontrado"
+            });
+        }
+
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
+        const encabezado = limpiarTexto(doc.encabezado);
+
+        // 🧹 Eliminar imágenes anteriores de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                }
+            }
+        }
+
+        // 🆕 Subir nuevas imágenes
+        for (const archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (!["png", "jpg", "jpeg", "gif"].includes(extension)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Extensión no permitida",
+                    extension
+                });
+            }
+
+            const bufferOptimizado = await sharp(archivo.buffer)
+                .resize({ width: 1200 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
+
+            // 📛 Generar nombre truncado
+            let baseName = `Hemerografia_${nombrePeriodico}_${encabezado}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 50);
+            }
+
+            const timestamp = Date.now();
+            const nombreFirebase = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+
+            const file = bucket.file(nombreFirebase);
+
+            await file.save(bufferOptimizado, {
+                metadata: {
+                    contentType: "image/jpeg",
+                    metadata: { firebaseStorageDownloadTokens: uuid }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombreFirebase)}?alt=media&token=${uuid}`;
+
+            urlsFirebase.push({ nombre: nombreFirebase, url });
+        }
+
+        // 💾 Guardar nuevas imágenes en MongoDB
+        doc.imagenes_fb = urlsFirebase;
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Fotos actualizadas correctamente",
+            imagenes_fb: urlsFirebase
+        });
+
+    } catch (error) {
+        console.error("❌ Error en editarFotografia:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error desconocido",
+            error
+        });
+    }
+};
+const editarPDFs = async (req, res) => {
+    const archivos = req.files;
+    const id = req.params.id;
+
+    if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha recibido ningún PDF"
+        });
+    }
+
+    const pdfsFirebase = [];
+
+    try {
+        const doc = await documentacion.findById(id);
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Registro no encontrado"
+            });
+        }
+
+        // 🧼 Eliminar PDFs anteriores
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                }
+            }
+        }
+
+        // 🔤 Normalizar nombres
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombrePeriodico = limpiarTexto(doc.nombre_periodico);
+        const encabezado = limpiarTexto(doc.encabezado);
+
+        // 📤 Subir nuevos PDFs
+        for (const archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (extension !== "pdf") {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Solo se permiten archivos PDF",
+                    extension
+                });
+            }
+
+            let baseName = `Hemerografia_PDF_${nombrePeriodico}_${encabezado}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 50);
+            }
+
+            const timestamp = Date.now();
+            const nombreFirebase = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+            const file = bucket.file(nombreFirebase);
+
+            await file.save(archivo.buffer, {
+                metadata: {
+                    contentType: "application/pdf",
+                    metadata: {
+                        firebaseStorageDownloadTokens: uuid
+                    }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombreFirebase)}?alt=media&token=${uuid}`;
+
+            pdfsFirebase.push({ nombre: nombreFirebase, ruta: url });
+        }
+
+        // 💾 Guardar en MongoDB
+        doc.pdfs = pdfsFirebase;
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "PDFs actualizados correctamente",
+            pdfs: pdfsFirebase
+        });
+
+    } catch (error) {
+        console.error("❌ Error en editarPDFs:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error desconocido",
+            error
         });
     }
 };
@@ -232,83 +461,73 @@ const obtenerDocumentacionPorID = async (req, res) => {
     }
 };
 const guardarPDF = async (req, res) => {
-    console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
-    let archivos = req.files;
-    let documentacionId = req.params.id;
+    const archivos = Array.isArray(req.files) ? req.files : [req.files];
+    const librosId = req.params.id;
 
     try {
-        // Obtener título desde la base de datos
-        const docu = await documentacion.findById(documentacionId);
-        if (!docu) {
+        const libro = await documentacion.findById(librosId);
+        if (!libro) {
             return res.status(404).json({
                 status: "error",
-                message: "Libro no encontrado"
+                message: "Documentación no encontrada"
             });
         }
-        let titulo = docu.titulo; // Asumiendo que el título está en el campo 'titulo' del documento
 
-        console.log("se encuentra el docu")
-        // Validar extensiones de archivos
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const nombrePeriodico = limpiarTexto(libro.nombre_periodico);
+        const encabezado = limpiarTexto(libro.encabezado);
+
+        const pdfsFirebase = [];
+
         for (let archivo of archivos) {
-            let archivo_split = archivo.originalname.split(".");
-            let extension = archivo_split[archivo_split.length - 1].toLowerCase();
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
             if (extension !== "pdf") {
-                fs.unlink(archivo.path, (error) => {
-                    // Borrar todos los archivos en caso de error de validación
-                    for (let file of archivos) {
-                        fs.unlink(file.path, () => {});
-                    }
-                    return res.status(500).json({
-                        status: "error",
-                        message: "Extensión de archivo no permitida",
-                        extension
-                    });
+                return res.status(400).json({
+                    status: "error",
+                    message: `Archivo no permitido: ${archivo.originalname}`,
                 });
-                return;
             }
-        }
-        console.log("se valida pdf")
 
-        // Renombrar y mover archivos
-        for (let archivo of archivos) {
-            let nuevoNombre = `Documetancion_${docu.numero_registro}_1.${archivo.originalname.split('.').pop()}`;
-            let nuevaRuta = path.join(__dirname, '../imagenes/documentacion/pdf', nuevoNombre);
+            let baseName = `Hemerografia_PDF_${nombrePeriodico}_${encabezado}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 50);
+            }
 
-            fs.renameSync(archivo.path, nuevaRuta);
-            archivo.filename = nuevoNombre;
-        }
-        console.log("se renombra y ruta")
-        const documentacionActualizada = await documentacion.findOneAndUpdate(
-            { _id: documentacionId },
-            {
-                $set: {
-                    pdfs: archivos.map(file => ({
-                        nombre: file.filename
-                    }))
+            const timestamp = Date.now();
+            const nombrePDF = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+            const file = bucket.file(nombrePDF);
+
+            await file.save(archivo.buffer, {
+                metadata: {
+                    contentType: "application/pdf",
+                    metadata: {
+                        firebaseStorageDownloadTokens: uuid
+                    }
                 }
-            },
-            { new: true }
-        );
+            });
 
-        if (!documentacionActualizada) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al actualizar la hemerografía"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                archivos: archivos.map(file => ({ nombre: file.filename }))
-            });
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombrePDF)}?alt=media&token=${uuid}`;
+
+            pdfsFirebase.push({ nombre: nombrePDF, ruta: url });
         }
+
+        libro.pdfs = pdfsFirebase;
+        await libro.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "PDFs subidos correctamente",
+            pdfs: pdfsFirebase
+        });
+
     } catch (error) {
-        // Borrar todos los archivos en caso de error de actualización
-        for (let file of archivos) {
-            fs.unlink(file.path, () => {});
-        }
+        console.error("❌ Error al subir PDFs:", error);
         return res.status(500).json({
             status: "error",
-            message: "Error en el servidor",
+            message: error.message || "Error en el servidor",
             error
         });
     }
@@ -682,6 +901,76 @@ const listarPendientes = async (req, res) => {
     }
 };
 
+const borrarDocumentacion = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await documentacion.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "documentacion no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(`imagen: ${imagen.nombre}`);
+                }
+            }
+        }
+
+        // 🗑️ Eliminar PDFs de Firebase
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                    erroresEliminacion.push(`pdf: ${pdf.nombre}`);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, NO se borra el documento
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todos los archivos, el documento no fue borrado",
+                archivosNoEliminados: erroresEliminacion
+            });
+        }
+
+        // ✅ Si todo fue eliminado correctamente, borrar el documento de MongoDB
+        await documentacion.findByIdAndDelete(id);
+
+        return res.status(200).json({
+            status: "success",
+            message: "documentacion, imágenes y PDFs eliminados correctamente"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarDocumentacion:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar la documentación"
+        });
+    }
+};
 
 module.exports={
     pruebaDocumentacion,
@@ -689,6 +978,8 @@ module.exports={
     cargarFotografia,
     borrarDocumentacion,
     editarDocumentacion,
+    editarFotografia,
+    editarPDFs,
     obtenerTemasDocumentacion,
     listarPorTema,
     obtenerDocumentacionPorID,

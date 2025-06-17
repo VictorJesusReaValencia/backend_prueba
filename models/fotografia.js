@@ -1,100 +1,63 @@
-const { Schema, model} = require("mongoose")
-
+const { Schema, model } = require("mongoose");
 
 const FotoSchema = new Schema({
-    titulo: {
-      type: String,
-      required: true,
-    },
-    autor: {
-      type: String,
-    },
-    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
-      {
-        nombre: {
-          type: String,
-          required: true,
-        },
-        fileId: {
-          type: String,
-          required: true,
-        }
-      }
-    ],
-    pais: {
-      type: String,
-      required: true
-    },
-    ciudad: {
-      type: String,
-      required: true
-    },
-    institucion: {
-      type: String,
-    },
-    ubicacion_fisica: {
-      type: String,
-    },
-    fecha: {
-      type: Date,
-    },
-    mes: {
-      type: Number,
-    },
-    dia: {
-      type: Number,
-    },
-    fecha_adquisicion: {
-      type: Number,
-    },
-    coleccion: {
-      type: String,
-    },
-    tipo_bien: {
-      type: String,
-      default: "fotografia"
-    },
-    hallazgo: {
-      type: String,
-      default: "No"
-    },
-    persona_registra: {
-      type: String,
-    },
-    tema: {
-      type: String,
-    },
-    numero_foto: {
-      type: Number,
-    },
-    numero_album: {
-      type: Number,
-    },
-    formato: {
-      type: String,
-    },
-    camara: {
-      type: String,
-    },
-    descripcion: {
-      type: String,
-    },
-    resumen: {
-      type: String,
-    },
-    pendientes: {
-      type: String,
-    },
-    mostrar: {
-      type: String,
-    },
-    editar: {
-      type: String,
-    },
-    revisado: {
-      type: String,
-    },
-  });
+  autor: { type: String },
+  camara: { type: String },
+  ciudad: { type: String, required: false },
+  coleccion: { type: String },
+  descripcion: { type: String },
+  dia: { type: Number },
+  editar: { type: String },
+  fecha: { type: Date },
+  fecha_adquisicion: { type: Number },
+  fecha_registro: { type: Date, default: Date.now },
+  formato: { type: String },
+  hallazgo: { type: String, default: "No" },
+  imagenes_fb: [
+    {
+      nombre: { type: String, maxlength: 50 },
+      url: { type: String }
+    }
+  ],
+  images: [
+    {
+      fileId: { type: String },
+      nombre: { type: String }
+    }
+  ],
+  institucion: { type: String },
+  mes: { type: Number },
+  mostrar: { type: String },
+  numero_album: { type: Number },
+  numero_foto: { type: Number },
+  pais: { type: String, required: false },
+  pendientes: { type: String },
+  persona_registra: { type: String },
+  resumen: { type: String },
+  revisado: { type: String },
+  revisiones: [
+    {
+      fecha: { type: Date, default: Date.now },
+      observacion: { type: String },
+      persona: { type: String, required: false },
+      revision_resuelta: { type: Boolean, default: false },
+      tipo_revision: { type: String }
+    }
+  ],
+  tema: { type: String },
+  tipo_bien: { type: String, default: "fotografia" },
+  titulo: { type: String, required: false },
+  ubicacion_fisica: { type: String },
+  ultima_actualizacion: {
+    fecha: { type: Date },
+    por: { type: String }
+  },
+  pdfs: [
+    {
+      nombre: { type: String, },
+      ruta: { type: String, }
+    }
+  ]
+});
 
-
-module.exports = model("Fotografia",FotoSchema,"fotografias");
+module.exports = model("Fotografia", FotoSchema, "fotografias");

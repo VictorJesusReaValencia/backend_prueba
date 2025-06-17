@@ -1,57 +1,43 @@
 const { Schema, model } = require("mongoose");
+
 const InstitucionesSchema = new Schema({
-    nombre: {
-        type: String,
-        required: true,
-    },
-    tipo_institucion: {
-        type: String,
-    },
-    images: [ // Cambiado a un array de objetos con propiedades 'nombre' y 'fileId'
-        {
-          nombre: {
-            type: String,
-            required: true,
-          },
-          fileId: {
-            type: String,
-            required: true,
-          }
-        }
-      ],
-    pais: {
-        type: String,
-        required: true
-    },
-    ciudad: {
-        type: String,
-        required: true
-    },
-    institucion: {
-        type: String,
-    },
-    maps: {
-        type: String,
-    },
-    numero_registro: {
-        type: Number,
-    },
-    notas_relevantes: {
-        type: String,
-    },
-    pendiente: {
-        type: String,
-    },
-    persona_registra: {
-        type: String,
-    },
-    pagina_web: {
-        type: String,
-    },
-    imagenes_fb: [{
-      nombre: { type: String, maxlength: 100  },
+  ciudad: { type: String, required: true },
+  fecha_registro: { type: Date, default: Date.now },
+  imagenes_fb: [
+    {
+      nombre: { type: String, maxlength: 50 },
       url: { type: String }
-    }],
+    }
+  ],
+  images: [
+    {
+      fileId: { type: String },
+      nombre: { type: String }
+    }
+  ],
+  institucion: { type: String },
+  maps: { type: String },
+  nombre: { type: String, required: true },
+  notas_relevantes: { type: String },
+  numero_registro: { type: Number },
+  pagina_web: { type: String },
+  pais: { type: String, required: true },
+  pendientes: { type: String },
+  persona_registra: { type: String },
+  revisiones: [
+    {
+      fecha: { type: Date, default: Date.now },
+      observacion: { type: String },
+      persona: { type: String, required: true },
+      revision_resuelta: { type: Boolean, default: false },
+      tipo_revision: { type: String }
+    }
+  ],
+  tipo_institucion: { type: String },
+  ultima_actualizacion: {
+    fecha: { type: Date },
+    por: { type: String }
+  }
 });
 
 module.exports = model("Instituciones", InstitucionesSchema, "Instituciones");
