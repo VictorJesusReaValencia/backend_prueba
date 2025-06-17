@@ -18,38 +18,38 @@ const pruebaCorrespondencia = (req, res) => {
     });
 }
 const registrarCorrespondencia = async (req, res) => {
-  let parametros = req.body;
+    let parametros = req.body;
 
-  try {
-    // 👉 Formatear la fecha de publicación si viene incluida
-    if (parametros.fecha_publicacion) {
-      const fechaOriginal = new Date(parametros.fecha_publicacion);
-      parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+    try {
+        // 👉 Formatear la fecha de publicación si viene incluida
+        if (parametros.fecha_publicacion) {
+            const fechaOriginal = new Date(parametros.fecha_publicacion);
+            parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        }
+
+        // 👉 Asignar la fecha de registro legible
+        parametros.fecha_registro = new Date()
+
+        // 👉 Crear y guardar la publicación
+        const publicacion = new correspondencia(parametros);
+        const publicacionGuardada = await publicacion.save();
+
+        return res.status(200).json({
+            status: "success",
+            mensaje: "Publicación periódica guardada correctamente",
+            publicacionGuardada
+        });
+
+    } catch (error) {
+        console.error("🔥 Error real:", error);
+
+        return res.status(400).json({
+            status: "error",
+            mensaje: error.message || "Error desconocido",
+            error: error.errors || error,
+            parametros
+        });
     }
-
-    // 👉 Asignar la fecha de registro legible
-    parametros.fecha_registro = new Date()
-
-    // 👉 Crear y guardar la publicación
-    const publicacion = new correspondencia(parametros);
-    const publicacionGuardada = await publicacion.save();
-
-    return res.status(200).json({
-      status: "success",
-      mensaje: "Publicación periódica guardada correctamente",
-      publicacionGuardada
-    });
-
-  } catch (error) {
-    console.error("🔥 Error real:", error);
-
-    return res.status(400).json({
-      status: "error",
-      mensaje: error.message || "Error desconocido",
-      error: error.errors || error,
-      parametros
-    });
-  }
 };
 const cargarFotografia = async (req, res) => {
     const archivos = req.files;
@@ -734,17 +734,29 @@ const listarPorTemaEInstitucion = async (req, res) => {
 };
 const obtenerNumeroDeBienesTotales = async (req, res) => {
     try {
-        // Suponiendo que Bienes es tu modelo de Mongoose
-        let bienesCount = await correspondencia.countDocuments({});
+        // Total de bienes
+        const total = await correspondencia.countDocuments({});
+
+        // Revisados (campo "revisado" igual a "Si")
+        const revisados = await correspondencia.countDocuments({ revisado: "Si" });
+
+        // Pendientes (campo "pendiente" no nulo ni vacío)
+        const pendientes = await correspondencia.countDocuments({
+            pendiente: { $exists: true, $ne: null, $ne: "" }
+        });
 
         return res.status(200).json({
             status: "success",
-            count: bienesCount
+            total,
+            revisados,
+            pendientes
         });
+
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener el número de bienes"
+            message: "Error al obtener el número de bienes",
+            error: error.message
         });
     }
 };

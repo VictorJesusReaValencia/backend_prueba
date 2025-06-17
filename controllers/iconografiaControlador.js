@@ -656,20 +656,32 @@ const listarPorTemaEInstitucion = async (req, res) => {
 };
 const obtenerNumeroDeBienesTotales = async (req, res) => {
     try {
-      // Suponiendo que Bienes es tu modelo de Mongoose
-      let bienesCount = await iconografia.countDocuments({});
-  
-      return res.status(200).json({
-        status: "success",
-        count: bienesCount
-      });
+        // Total de bienes
+        const total = await iconografia.countDocuments({});
+
+        // Revisados (campo "revisado" igual a "Si")
+        const revisados = await iconografia.countDocuments({ revisado: "Si" });
+
+        // Pendientes (campo "pendiente" no nulo ni vacío)
+        const pendientes = await iconografia.countDocuments({
+            pendiente: { $exists: true, $ne: null, $ne: "" }
+        });
+
+        return res.status(200).json({
+            status: "success",
+            total,
+            revisados,
+            pendientes
+        });
+
     } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de bienes"
-      });
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de bienes",
+            error: error.message
+        });
     }
-  };
+};
 const actualizarInstitucion = async (req, res) => {
     const { institucionanterior, institucionueva } = req.params;
 

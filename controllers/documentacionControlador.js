@@ -2,7 +2,7 @@ const documentacion = require("../models/documentacion")
 const validator = require("validator")
 const fs = require("fs")
 const path = require('path');
-const  OpenAIApi  = require("openai");
+const OpenAIApi = require("openai");
 const sharp = require("sharp");
 const { v4: uuidv4 } = require('uuid');
 const bucket = require('../database/firebase_config'); // Asegúrate de tener este archivo
@@ -40,15 +40,15 @@ const registrarDocumentacion = async (req, res) => {
         });
 
     } catch (error) {
-    console.error("🔥 Error real:", error); // Para ver el mensaje en consola
+        console.error("🔥 Error real:", error); // Para ver el mensaje en consola
 
-    return res.status(400).json({
-        status: "error",
-        mensaje: error.message || "Error desconocido",
-        error: error.errors || error,
-        parametros
-    });
-}
+        return res.status(400).json({
+            status: "error",
+            mensaje: error.message || "Error desconocido",
+            error: error.errors || error,
+            parametros
+        });
+    }
 };
 const cargarFotografia = async (req, res) => {
     const archivos = req.files;
@@ -440,7 +440,7 @@ const obtenerDocumentacionPorID = async (req, res) => {
     let hemeroID = req.params.id;
 
     try {
-        let docu= await documentacion.findById(hemeroID);
+        let docu = await documentacion.findById(hemeroID);
 
         if (!docu) {
             return res.status(404).json({
@@ -535,39 +535,39 @@ const guardarPDF = async (req, res) => {
 
 const obtenerNumeroDeFotosPorPais = async (req, res) => {
     let paisID = req.params.id;
-  
+
     try {
-      // Suponiendo que documentacion es tu modelo de Mongoose
-      let fotosCount = await documentacion.countDocuments({ pais: paisID });
-  
-      return res.status(200).json({
-        status: "success",
-        count: fotosCount
-      });
+        // Suponiendo que documentacion es tu modelo de Mongoose
+        let fotosCount = await documentacion.countDocuments({ pais: paisID });
+
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
     } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de fotos"
-      });
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
     }
-  };
+};
 const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
-let paisID = req.params.id;
+    let paisID = req.params.id;
 
-try {
-    // Suponiendo que documentacion es tu modelo de Mongoose
-    let fotosCount = await documentacion.countDocuments({ institucion: paisID });
+    try {
+        // Suponiendo que documentacion es tu modelo de Mongoose
+        let fotosCount = await documentacion.countDocuments({ institucion: paisID });
 
-    return res.status(200).json({
-    status: "success",
-    count: fotosCount
-    });
-} catch (error) {
-    return res.status(500).json({
-    status: "error",
-    message: "Error al obtener el número de fotos"
-    });
-}
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
+    }
 };
 const obtenerTemasInstituciones = async (req, res) => {
     try {
@@ -663,21 +663,33 @@ const listarPorTemaEInstitucion = async (req, res) => {
 };
 const obtenerNumeroDeBienesTotales = async (req, res) => {
     try {
-      // Suponiendo que Bienes es tu modelo de Mongoose
-      let bienesCount = await documentacion.countDocuments({});
-  
-      return res.status(200).json({
-        status: "success",
-        count: bienesCount
-      });
+        // Total de bienes
+        const total = await documentacion.countDocuments({});
+
+        // Revisados (campo "revisado" igual a "Si")
+        const revisados = await documentacion.countDocuments({ revisado: "Si" });
+
+        // Pendientes (campo "pendiente" no nulo ni vacío)
+        const pendientes = await documentacion.countDocuments({
+            pendiente: { $exists: true, $ne: null, $ne: "" }
+        });
+
+        return res.status(200).json({
+            status: "success",
+            total,
+            revisados,
+            pendientes
+        });
+
     } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de bienes"
-      });
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de bienes",
+            error: error.message
+        });
     }
-  };
-  const actualizarInstitucion = async (req, res) => {
+};
+const actualizarInstitucion = async (req, res) => {
     const { institucionanterior, institucionueva } = req.params;
 
     try {
@@ -708,7 +720,7 @@ const obtenerNumeroDeBienesTotales = async (req, res) => {
         });
     }
 };
-const getChatGPTResponse = async (req,res) => {
+const getChatGPTResponse = async (req, res) => {
 
     const texto = req.params.id
     try {
@@ -720,7 +732,7 @@ const getChatGPTResponse = async (req,res) => {
         return res.status(200).json({
             status: "success",
             message: response.choices[0].message.content,
-            
+
         });
     } catch (error) {
         console.error('Error al hacer la solicitud a la API:', error.message);
@@ -745,7 +757,7 @@ const getTranscriptionFromImage = async (req, res) => {
         const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
 
         // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
+        const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
                 {
@@ -785,7 +797,7 @@ const getTranscriptionFromImage = async (req, res) => {
 };
 const processTextAndImage = async (req, res) => {
     const texto = req.params.id;
-    
+
     try {
         // Asegurarse de que se haya enviado un archivo de imagen
         if (!req.file) {
@@ -802,7 +814,7 @@ const processTextAndImage = async (req, res) => {
         const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
 
         // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
+        const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
                 {
@@ -879,7 +891,7 @@ const listarPendientes = async (req, res) => {
         // Filtrar los elementos que no tienen revisado igual a "Sí"
         pendientes = pendientes.filter(item => item.revisado !== "Sí");
 
-        const totalPendientes = pendientes.length ;
+        const totalPendientes = pendientes.length;
 
         if (totalPendientes === 0) {
             return res.status(404).json({
@@ -972,7 +984,7 @@ const borrarDocumentacion = async (req, res) => {
     }
 };
 
-module.exports={
+module.exports = {
     pruebaDocumentacion,
     registrarDocumentacion,
     cargarFotografia,
