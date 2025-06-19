@@ -42,23 +42,20 @@ const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-libros', LibrosControlador.pruebaLibros);
 router.post("/registrar", LibrosControlador.registrarLibros);
-router.post('/registrar-imagen/:id', [subidas.array("files", 10)], LibrosControlador.cargarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], LibrosControlador.registrarFotografia); // Permite hasta 10 archivos
 router.delete('/borrar/:id', LibrosControlador.borrarLibro);
 router.put('/editar/:id', LibrosControlador.editarLibros);
 router.get('/listar-temas', LibrosControlador.obtenerTemasLibros);
 router.get('/tema/:id', LibrosControlador.listarPorTema);
 router.get('/libro/:id', LibrosControlador.obtenerLibrosPorID);
-router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.guardarPDF); // Permite hasta 10 archivos
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.registrarPDF); // Permite hasta 10 archivos
 router.get('/numero-por-pais/:id', LibrosControlador.obtenerNumeroDeFotosPorPais);
 router.get('/numero-institucion/:id', LibrosControlador.obtenerNumeroDeFotosPorInstitucion);
 router.get('/listar-temas-instituciones/:id', LibrosControlador.obtenerTemasInstituciones);
 router.get('/:institucionId/:id', LibrosControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', LibrosControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', LibrosControlador.actualizarInstitucion);
-router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.guardarPDF); // Permite hasta 10 archivos
-router.get('/gpt/amado-nervo/:id', LibrosControlador.getChatGPTResponse);
-router.post('/gpt/gpt/transcripcion', upload.single('file'), LibrosControlador.getTranscriptionFromImage);
-router.post('/gpt/image-text/:id', upload.single('file'), LibrosControlador.processTextAndImage);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], LibrosControlador.registrarPDF); // Permite hasta 10 archivos
 router.get('/search',LibrosControlador.getSugerencias)
 router.get('/listar-pendientes', LibrosControlador.listarPendientes);
 

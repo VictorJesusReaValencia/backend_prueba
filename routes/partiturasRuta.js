@@ -40,8 +40,11 @@ const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-partituras', PartiturasControlador.pruebaPartituras);
 router.post("/registrar", PartiturasControlador.registrarPartituras);
-router.post('/registrar-imagen/:id', [subidas.array("files", 10)], PartiturasControlador.cargarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], PartiturasControlador.registrarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-pdfs/:id', [subidas.array("pdfs", 10)], PartiturasControlador.registrarPDF); // Permite hasta 10 archivos
 router.delete('/borrar/:id', PartiturasControlador.borrarPartituras);
+router.put('/borrar-imagen/:id', PartiturasControlador.borrarFotografias);
+router.put('/borrar-pdfs/:id', PartiturasControlador.borrarPdfs);
 router.put('/editar/:id', PartiturasControlador.editarPartituras);
 router.get('/listar-temas', PartiturasControlador.obtenerTemasPartituras);
 router.get('/tema/:id', PartiturasControlador.listarPorTema);
@@ -52,7 +55,7 @@ router.get('/listar-temas-instituciones/:id', PartiturasControlador.obtenerTemas
 router.get('/:institucionId/:id', PartiturasControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', PartiturasControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', PartiturasControlador.actualizarInstitucion);
-router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], PartiturasControlador.guardarPDF); // Permite hasta 10 archivos
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], PartiturasControlador.registrarPDF); // Permite hasta 10 archivos
 router.get('/gpt/amado-nervo/:id', PartiturasControlador.getChatGPTResponse);
 router.post('/gpt/gpt/transcripcion', upload.single('file'), PartiturasControlador.getTranscriptionFromImage);
 router.post('/gpt/image-text/:id', upload.single('file'), PartiturasControlador.processTextAndImage);

@@ -1,7 +1,7 @@
 const { Schema, model } = require("mongoose");
 
 const InstitucionesSchema = new Schema({
-  ciudad: { type: String, required: true },
+  ciudad: { type: String, required: false },
   fecha_registro: { type: Date, default: Date.now },
   imagenes_fb: [
     {
@@ -17,18 +17,18 @@ const InstitucionesSchema = new Schema({
   ],
   institucion: { type: String },
   maps: { type: String },
-  nombre: { type: String, required: true },
+  nombre: { type: String, required: false },
   notas_relevantes: { type: String },
   numero_registro: { type: Number },
   pagina_web: { type: String },
-  pais: { type: String, required: true },
+  pais: { type: String, required: false },
   pendientes: { type: String },
   persona_registra: { type: String },
   revisiones: [
     {
       fecha: { type: Date, default: Date.now },
       observacion: { type: String },
-      persona: { type: String, required: true },
+      persona: { type: String, required: false },
       revision_resuelta: { type: Boolean, default: false },
       tipo_revision: { type: String }
     }

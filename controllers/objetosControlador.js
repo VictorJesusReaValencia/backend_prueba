@@ -7,6 +7,28 @@ const pruebaObjetos = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
+//#########################################################################################################//
+//-----------------------------------------Formularios--------------------------------------------------//
+//##########################################################################################################//
+const getSugerencias = async (req, res) => {
+    try {
+        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
+        if (!query || !campo) {
+            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
+        }
+
+        // Crear un objeto de búsqueda dinámico basado en el campo y la query
+        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
+
+        // Buscar nombres únicos en el campo especificado que coincidan con la query
+        const resultados = await objetos.distinct(campo, criterioBusqueda);
+
+        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar en la base de datos' });
+    }
+};
+//-----------------------------------------------Guardar-Editar-Borrar datos--------------------------------------------------//
 const registrarObjetos = async (req,res) =>{
     //Recojer parametros por post a guardar
     let parametros = req.body;
@@ -28,7 +50,6 @@ const registrarObjetos = async (req,res) =>{
         })
     }
 }
-
 const cargarFotografia = async (req, res) => {
     console.log(req.files); // Para verificar que se están recibiendo múltiples archivos
     let archivos = req.files;
@@ -620,26 +641,6 @@ const processTextAndImage = async (req, res) => {
             message: 'No se pudo obtener una respuesta de ChatGPT.',
             error: error
         });
-    }
-};
-
-
-const getSugerencias = async (req, res) => {
-    try {
-        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
-        if (!query || !campo) {
-            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
-        }
-
-        // Crear un objeto de búsqueda dinámico basado en el campo y la query
-        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
-
-        // Buscar nombres únicos en el campo especificado que coincidan con la query
-        const resultados = await objetos.distinct(campo, criterioBusqueda);
-
-        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
-    } catch (error) {
-        res.status(500).json({ error: 'Error al buscar en la base de datos' });
     }
 };
 

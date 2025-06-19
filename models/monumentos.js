@@ -41,6 +41,12 @@ const MonumentosSchema = new Schema({
       tipo_revision: { type: String }
     }
   ],
+  pdfs: [
+    {
+      nombre: { type: String, },
+      ruta: { type: String, }
+    }
+  ],
   tema: { type: String },
   tipo_bien: { type: String, default: "Iconografía" }, // Nota: ¿Deseas cambiar a "Monumento"?
   tipo_monumento: { type: String },

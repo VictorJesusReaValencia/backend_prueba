@@ -2,64 +2,17 @@ const hemerografia = require("../models/hemerografia")
 const validator = require("validator")
 const fs = require("fs");
 const { constrainedMemory } = require("process");
-const  OpenAIApi  = require("openai");
 const bucket = require('../database/firebase_config'); // Asegúrate de tener este archivo
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const sharp = require("sharp");
 
-
-
-
-const openai = new OpenAIApi({
-    apiKey: process.env.OPENIAKEY, // Rellena con tu API Key
-    organization: process.env.ORG // Rellena con tu ID de Organización si es necesario
-});
 const pruebaHemerografia = (req, res) => {
     return res.status(200).send({
         message: "Mensaje de prueba enviado"
     });
 }
-  
-const listarPendientes = async (req, res) => {
-    try {
-        // Encontrar todos los elementos que tienen algo en el campo pendiente
-        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
 
-        if (!pendientes || pendientes.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron elementos pendientes"
-            });
-        }
-
-        // Contar cuántos elementos tienen revisado igual a "Sí"
-        const revisados = pendientes.filter(item => item.revisado === "Sí").length;
-
-        // Filtrar los elementos que no tienen revisado igual a "Sí"
-        pendientes = pendientes.filter(item => item.revisado !== "Sí");
-
-        const totalPendientes = pendientes.length ;
-
-        if (totalPendientes === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron elementos pendientes"
-            });
-        } else {
-            return res.status(200).send({
-                status: "success",
-                totalPendientes: totalPendientes - revisados, // Restar los revisados del total
-                pendientes
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener los elementos pendientes"
-        });
-    }
-};
 
 //#########################################################################################################//
 //-----------------------------------------Formularios--------------------------------------------------//
@@ -86,40 +39,40 @@ const getSugerencias = async (req, res) => {
 //-----------------------------------------------Guardar-Editar-Borrar datos--------------------------------------------------//
 // Registrar una nueva hemerografía
 const registrarHemerografia = async (req, res) => {
-  let parametros = req.body;
+    let parametros = req.body;
 
-  try {
-    // 👉 Formatear la fecha de publicación si viene incluida
-    if (parametros.fecha_publicacion) {
-      const fechaOriginal = new Date(parametros.fecha_publicacion);
-      parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+    try {
+        // 👉 Formatear la fecha de publicación si viene incluida
+        if (parametros.fecha_publicacion) {
+            const fechaOriginal = new Date(parametros.fecha_publicacion);
+            parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        }
+
+        // 👉 Asignar la fecha de registro legible
+        parametros.fecha_registro = new Date()
+
+        // 👉 Crear y guardar la publicación
+        const publicacion = new hemerografia(parametros);
+        const publicacionGuardada = await publicacion.save();
+
+        return res.status(200).json({
+            status: "success",
+            mensaje: "Publicación periódica guardada correctamente",
+            publicacionGuardada
+        });
+
+    } catch (error) {
+        console.error("🔥 Error real:", error);
+
+        return res.status(400).json({
+            status: "error",
+            mensaje: error.message || "Error desconocido",
+            error: error.errors || error,
+            parametros
+        });
     }
-
-    // 👉 Asignar la fecha de registro legible
-    parametros.fecha_registro = new Date()
-
-    // 👉 Crear y guardar la publicación
-    const publicacion = new hemerografia(parametros);
-    const publicacionGuardada = await publicacion.save();
-
-    return res.status(200).json({
-      status: "success",
-      mensaje: "Publicación periódica guardada correctamente",
-      publicacionGuardada
-    });
-
-  } catch (error) {
-    console.error("🔥 Error real:", error);
-
-    return res.status(400).json({
-      status: "error",
-      mensaje: error.message || "Error desconocido",
-      error: error.errors || error,
-      parametros
-    });
-  }
 };
-const cargarFotografia = async (req, res) => {
+const registrarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
 
@@ -204,7 +157,7 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
-const guardarPDF = async (req, res) => {
+const registrarPDF = async (req, res) => {
     const archivos = Array.isArray(req.files) ? req.files : [req.files];
     const librosId = req.params.id;
 
@@ -347,6 +300,121 @@ const borrarHemerografia = async (req, res) => {
         });
     }
 };
+const borrarFotografias = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await hemerografia.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(imagen.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todas las imágenes de Firebase",
+                imagenesNoEliminadas: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `imagenes_fb`
+        doc.imagenes_fb = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todas las imágenes fueron eliminadas de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarFotografias:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar las imágenes"
+        });
+    }
+};
+
+const borrarPdfs = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await hemerografia.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar PDFs de Firebase
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                    erroresEliminacion.push(pdf.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todos los PDFs de Firebase",
+                pdfsNoEliminados: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `pdfs`
+        doc.pdfs = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todos los PDFs fueron eliminados de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarPdfs:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar los PDFs"
+        });
+    }
+};
+
+
 // Editar una hemerografía existente
 const editarHemerografia = async (req, res) => {
     const id = req.params.id;
@@ -573,212 +641,79 @@ const editarPDFs = async (req, res) => {
         });
     }
 };
+//-----------------------------------------------Buscador--------------------------------------------------//
+
 const buscarHemerografia = async (req, res) => {
-  try {
-    const {
-      texto,
-      anioInicio,
-      anioFin,
-      fecha_publicacion,
-      pais,
-      ciudad,
-      periodico
-    } = req.query;
-
-    const filtros = {};
-
-    // Filtro de texto libre
-    if (texto && texto.trim() !== "") {
-      const regex = new RegExp(texto.trim(), "i");
-      filtros.$or = [
-        { nombre_periodico: regex },
-        { tema: regex },
-        { encabezado: regex },
-        { autor: regex },
-        { seccion: regex },
-        { resumen: regex }
-      ];
-    }
-
-    // Filtro por año exacto (rango añoInicio - añoFin)
-    if (anioInicio || anioFin) {
-      const desde = anioInicio ? new Date(`${anioInicio}-01-01`) : new Date("1700-01-01");
-      const hasta = anioFin ? new Date(`${anioFin}-12-31T23:59:59`) : new Date();
-
-      filtros.fecha_publicacion = {
-        $gte: desde,
-        $lte: hasta
-      };
-    }
-
-    // Filtro por fecha exacta
-    if (fecha_publicacion) {
-      const fecha = new Date(fecha_publicacion);
-      const siguienteDia = new Date(fecha);
-      siguienteDia.setDate(fecha.getDate() + 1);
-
-      filtros.fecha_publicacion = {
-        $gte: fecha,
-        $lt: siguienteDia
-      };
-    }
-
-    // Filtros directos
-    if (pais) filtros.pais = new RegExp(pais, "i");
-    if (ciudad) filtros.ciudad = new RegExp(ciudad, "i");
-    if (periodico) filtros.nombre_periodico = new RegExp(periodico, "i");
-
-    const resultados = await hemerografia.find(filtros).limit(50);
-
-    return res.status(200).json({
-      status: "success",
-      resultados
-    });
-
-  } catch (error) {
-    console.error("❌ Error en la búsqueda:", error);
-    return res.status(500).json({
-      status: "error",
-      message: "Error al realizar la búsqueda",
-      error
-    });
-  }
-};
-
-
-//-----------------------------------------------ChatGPT--------------------------------------------------//
-
-const getChatGPTResponse = async (req,res) => {
-
-    const texto = req.params.id
     try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: texto }],
-        });
-        console.log(response.choices[0].message.content)
-        return res.status(200).json({
-            status: "success",
-            message: response.choices[0].message.content,
-            
-        });
-    } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
-        return 'No se pudo obtener una respuesta de ChatGPT.';
-    }
-};
-const getTranscriptionFromImage = async (req, res) => {
-    try {
-        // Asegurarse de que se haya enviado un archivo
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No se ha enviado ninguna imagen."
-            });
+        const {
+            texto,
+            anioInicio,
+            anioFin,
+            fecha_publicacion,
+            pais,
+            ciudad,
+            periodico
+        } = req.query;
+
+        const filtros = {};
+
+        // Filtro de texto libre
+        if (texto && texto.trim() !== "") {
+            const regex = new RegExp(texto.trim(), "i");
+            filtros.$or = [
+                { nombre_periodico: regex },
+                { tema: regex },
+                { encabezado: regex },
+                { autor: regex },
+                { seccion: regex },
+                { resumen: regex }
+            ];
         }
 
-        // Obtener la ruta temporal de la imagen subida
-        const imagePath = req.file.path;
+        // Filtro por año exacto (rango añoInicio - añoFin)
+        if (anioInicio || anioFin) {
+            const desde = anioInicio ? new Date(`${anioInicio}-01-01`) : new Date("1700-01-01");
+            const hasta = anioFin ? new Date(`${anioFin}-12-31T23:59:59`) : new Date();
 
-        // Leer la imagen y convertirla a base64
-        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
+            filtros.fecha_publicacion = {
+                $gte: desde,
+                $lte: hasta
+            };
+        }
 
-        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: "Dame la transcripcion de esta imagen, solo contesta con el texto de la transcripcion"
-                        },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:image/jpeg;base64,${imageData}`
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 300
-        });
+        // Filtro por fecha exacta
+        if (fecha_publicacion) {
+            const fecha = new Date(fecha_publicacion);
+            const siguienteDia = new Date(fecha);
+            siguienteDia.setDate(fecha.getDate() + 1);
 
-        // Mostrar la respuesta en la consola
-        console.log(response.choices[0].message);
+            filtros.fecha_publicacion = {
+                $gte: fecha,
+                $lt: siguienteDia
+            };
+        }
+
+        // Filtros directos
+        if (pais) filtros.pais = new RegExp(pais, "i");
+        if (ciudad) filtros.ciudad = new RegExp(ciudad, "i");
+        if (periodico) filtros.nombre_periodico = new RegExp(periodico, "i");
+
+        const resultados = await hemerografia.find(filtros).limit(50);
 
         return res.status(200).json({
             status: "success",
-            transcription: response.choices[0].message.content,
+            resultados
         });
+
     } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
+        console.error("❌ Error en la búsqueda:", error);
         return res.status(500).json({
             status: "error",
-            message: 'No se pudo obtener una transcripción de la imagen.',
-            error: error
+            message: "Error al realizar la búsqueda",
+            error
         });
     }
 };
-const processTextAndImage = async (req, res) => {
-    const texto = req.params.id;
-    
-    try {
-        // Asegurarse de que se haya enviado un archivo de imagen
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No se ha enviado ninguna imagen."
-            });
-        }
-
-        // Obtener la ruta temporal de la imagen subida
-        const imagePath = req.file.path;
-
-        // Leer la imagen y convertirla a base64
-        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
-
-        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: texto
-                        },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:image/jpeg;base64,${imageData}`
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 300
-        });
-
-        // Mostrar la respuesta en la consola
-        console.log(response.choices[0].message.content);
-
-        return res.status(200).json({
-            status: "success",
-            message: response.choices[0].message.content,
-        });
-    } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
-        return res.status(500).json({
-            status: "error",
-            message: 'No se pudo obtener una respuesta de ChatGPT.',
-            error: error
-        });
-    }
-};  
 //#########################################################################################################//
 //-----------------------------------------Tema, tema e insitucion y detalle--------------------------------------------------//
 //##########################################################################################################//
@@ -810,7 +745,7 @@ const obtenerHemerografiaPorID = async (req, res) => {
     let hemeroID = req.params.id;
 
     try {
-        let hemero= await hemerografia.findById(hemeroID);
+        let hemero = await hemerografia.findById(hemeroID);
 
         if (!hemero) {
             return res.status(404).json({
@@ -855,7 +790,91 @@ const listarPorTemaEInstitucion = async (req, res) => {
         });
     }
 };
+const listarPendientes = async (req, res) => {
+    try {
+        // Encontrar todos los elementos que tienen algo en el campo pendiente
+        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
 
+        if (!pendientes || pendientes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        }
+
+        // Contar cuántos elementos tienen revisado igual a "Sí"
+        const revisados = pendientes.filter(item => item.revisado === "Sí").length;
+
+        // Filtrar los elementos que no tienen revisado igual a "Sí"
+        pendientes = pendientes.filter(item => item.revisado !== "Sí");
+
+        const totalPendientes = pendientes.length;
+
+        if (totalPendientes === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                totalPendientes: totalPendientes - revisados, // Restar los revisados del total
+                pendientes
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los elementos pendientes"
+        });
+    }
+};
+const listarPorCarpeta = async (req, res) => {
+    const albumId = req.params.id;
+    try {
+        let fotos = await hemerografia.find({ numero_carpeta: albumId }).sort({ numero_registro: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para esta carpeta"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+const listarPorSeccion = async (req, res) => {
+    const seccionId = req.params.id;
+    try {
+        let bienes = await hemerografia.find({ seccion: seccionId }).sort({ numero_registro: 1 });
+
+        if (!bienes || bienes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: `No se encontraron bienes para la sección ${seccionId}`
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                bienes
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los bienes"
+        });
+    }
+};
 //#########################################################################################################//
 //-----------------------------------------Acervo e instituciones--------------------------------------------------//
 //##########################################################################################################//
@@ -863,124 +882,121 @@ const listarPorTemaEInstitucion = async (req, res) => {
 
 const obtenerNumeroDeFotosPorPais = async (req, res) => {
     let paisID = req.params.id;
-  
+
     try {
-      // Suponiendo que hemerografia es tu modelo de Mongoose
-      let fotosCount = await hemerografia.countDocuments({ pais: paisID });
-  
-      return res.status(200).json({
-        status: "success",
-        count: fotosCount
-      });
+        // Suponiendo que hemerografia es tu modelo de Mongoose
+        let fotosCount = await hemerografia.countDocuments({ pais: paisID });
+
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
     } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de fotos"
-      });
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
     }
-  };
-const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
-let paisID = req.params.id;
-
-try {
-    // Suponiendo que hemerografia es tu modelo de Mongoose
-    let fotosCount = await hemerografia.countDocuments({ institucion: paisID });
-
-    return res.status(200).json({
-    status: "success",
-    count: fotosCount
-    });
-} catch (error) {
-    return res.status(500).json({
-    status: "error",
-    message: "Error al obtener el número de fotos"
-    });
-}
 };
+const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
+    let paisID = req.params.id;
 
+    try {
+        // Suponiendo que hemerografia es tu modelo de Mongoose
+        let fotosCount = await hemerografia.countDocuments({ institucion: paisID });
 
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
+    }
+};
 //-----------------------------------------------Temas--------------------------------------------------//
 const obtenerTemasHemerografia = async (req, res) => {
-  try {
-    // Obtener temas, número total, revisados y pendientes por tema
-    const temas = await hemerografia.aggregate([
-      {
-        $group: {
-          _id: "$tema",
-          numeroDeFotos: { $sum: 1 },
-          revisados: {
-            $sum: {
-              $cond: [{ $eq: ["$revisado", "Sí"] }, 1, 0]
+    try {
+        // Obtener temas, número total, revisados y pendientes por tema
+        const temas = await hemerografia.aggregate([
+            {
+                $group: {
+                    _id: "$tema",
+                    numeroDeFotos: { $sum: 1 },
+                    revisados: {
+                        $sum: {
+                            $cond: [{ $eq: ["$revisado", "Sí"] }, 1, 0]
+                        }
+                    },
+                    pendientes: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $ne: ["$pendiente", null] },
+                                        { $ne: ["$pendiente", ""] }
+                                    ]
+                                },
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    tema: "$_id",
+                    numeroDeFotos: 1,
+                    revisados: 1,
+                    pendientes: 1
+                }
+            },
+            {
+                $sort: { tema: 1 }
             }
-          },
-          pendientes: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $ne: ["$pendiente", null] },
-                    { $ne: ["$pendiente", ""] }
-                  ]
-                },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          tema: "$_id",
-          numeroDeFotos: 1,
-          revisados: 1,
-          pendientes: 1
-        }
-      },
-      {
-        $sort: { tema: 1 }
-      }
-    ]);
+        ]);
 
-    if (!temas.length) {
-      return res.status(404).json({
-        status: "error",
-        message: "No se encontraron temas"
-      });
+        if (!temas.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron temas"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada tema y el nombre de imagen
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const libroAleatorio = await hemerografia.aggregate([
+                { $match: { tema: tema.tema } },
+                { $sample: { size: 1 } }
+            ]);
+
+            const nombreImagen = libroAleatorio[0]?.images?.length > 0
+                ? libroAleatorio[0].images[0].nombre
+                : null;
+
+            return {
+                ...tema,
+                fotoAleatoria: libroAleatorio[0]?.image || null, // o 'imagenes_fb[0].url' si usas firebase
+                nombreImagen
+            };
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            temas: temasConFotoYNombre
+        });
+    } catch (error) {
+        console.error("Error al obtener temas:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los temas"
+        });
     }
-
-    // Obtener una foto aleatoria por cada tema y el nombre de imagen
-    const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
-      const libroAleatorio = await hemerografia.aggregate([
-        { $match: { tema: tema.tema } },
-        { $sample: { size: 1 } }
-      ]);
-
-      const nombreImagen = libroAleatorio[0]?.images?.length > 0
-        ? libroAleatorio[0].images[0].nombre
-        : null;
-
-      return {
-        ...tema,
-        fotoAleatoria: libroAleatorio[0]?.image || null, // o 'imagenes_fb[0].url' si usas firebase
-        nombreImagen
-      };
-    }));
-
-    return res.status(200).json({
-      status: "success",
-      temas: temasConFotoYNombre
-    });
-  } catch (error) {
-    console.error("Error al obtener temas:", error);
-    return res.status(500).json({
-      status: "error",
-      message: "Error al obtener los temas"
-    });
-  }
 };
-
 const obtenerTemasInstituciones = async (req, res) => {
     try {
         const institucionId = req.params.id;
@@ -1048,229 +1064,183 @@ const obtenerTemasInstituciones = async (req, res) => {
         });
     }
 };
+const obtenerNumeroDeBienesTotales = async (req, res) => {
+    try {
+        // Total de bienes
+        const total = await hemerografia.countDocuments({});
 
+        // Revisados (campo "revisado" igual a "Si")
+        const revisados = await hemerografia.countDocuments({ revisado: "Si" });
+
+        // Pendientes (campo "pendiente" no nulo ni vacío)
+        const pendientes = await hemerografia.countDocuments({
+            pendiente: { $exists: true, $ne: null, $ne: "" }
+        });
+
+        return res.status(200).json({
+            status: "success",
+            total,
+            revisados,
+            pendientes
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de bienes",
+            error: error.message
+        });
+    }
+};
 //#########################################################################################################//
 //-----------------------------------------???????????????'--------------------------------------------------//
 //##########################################################################################################//
 
-    const obtenerCarpetasRecortes = async (req, res) => {
-        try {
-            // Obtener álbumes y número de fotos por álbum, excluyendo aquellos con null en numero_album
-            const albumes = await hemerografia.aggregate([
-                {
-                    $match: {
-                        numero_carpeta: { $ne: null }
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$numero_carpeta",
-                        numeroDeFotos: { $sum: 1 }
-                    }
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        album: "$_id",
-                        numeroDeFotos: 1
-                    }
-                },
-                {
-                    $sort: { album: 1 } // Orden ascendente por número de álbum
+const obtenerCarpetasRecortes = async (req, res) => {
+    try {
+        // Obtener álbumes y número de fotos por álbum, excluyendo aquellos con null en numero_album
+        const albumes = await hemerografia.aggregate([
+            {
+                $match: {
+                    numero_carpeta: { $ne: null }
                 }
+            },
+            {
+                $group: {
+                    _id: "$numero_carpeta",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    album: "$_id",
+                    numeroDeFotos: 1
+                }
+            },
+            {
+                $sort: { album: 1 } // Orden ascendente por número de álbum
+            }
+        ]);
+
+        if (!albumes.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron álbumes"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada álbum
+        const albumesConFoto = await Promise.all(albumes.map(async album => {
+            const fotoAleatoria = await hemerografia.aggregate([
+                { $match: { numero_album: album.album } },
+                { $sample: { size: 1 } }
             ]);
 
-            if (!albumes.length) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron álbumes"
-                });
-            }
+            return {
+                ...album,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+            };
+        }));
 
-            // Obtener una foto aleatoria por cada álbum
-            const albumesConFoto = await Promise.all(albumes.map(async album => {
-                const fotoAleatoria = await hemerografia.aggregate([
-                    { $match: { numero_album: album.album } },
-                    { $sample: { size: 1 } }
-                ]);
-
-                return {
-                    ...album,
-                    fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null // Asumiendo que la URL de la foto se encuentra en el campo 'image'
-                };
-            }));
-
-            return res.status(200).json({
-                status: "success",
-                albumes: albumesConFoto
-            });
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al obtener los álbumes"
-            });
-        }
-    };
-    const listarPorCarpeta = async (req, res) => {
-        const albumId = req.params.id;
-        try {
-            let fotos = await hemerografia.find({ numero_carpeta: albumId }).sort({ numero_registro: 1 });
-
-            if (!fotos || fotos.length === 0) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron fotos para esta carpeta"
-                });
-            } else {
-                return res.status(200).send({
-                    status: "success",
-                    fotos
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al obtener las fotos"
-            });
-        }
-    };
-    const obtenerSeccionesRecortes = async (req, res) => {
-        try {
-            // Agrupar por sección y contar el número de bienes en cada una
-            const secciones = await hemerografia.aggregate([
-                {
-                    $match: {
-                        seccion: { $ne: null }
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$seccion",
-                        numeroDeBienes: { $sum: 1 }
-                    }
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        seccion: "$_id",
-                        numeroDeBienes: 1
-                    }
-                },
-                {
-                    $sort: { seccion: 1 } // Orden ascendente por sección
-                }
-            ]);
-
-            if (!secciones.length) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron secciones"
-                });
-            }
-
-            // Obtener todas las secciones registradas
-            const todasLasSecciones = await hemerografia.distinct("seccion", { seccion: { $ne: null } });
-
-            return res.status(200).json({
-                status: "success",
-                secciones: secciones,
-                todasLasSecciones: todasLasSecciones
-            });
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al obtener las secciones"
-            });
-        }
-    };
-    const listarPorSeccion = async (req, res) => {
-        const seccionId = req.params.id;
-        try {
-            let bienes = await hemerografia.find({ seccion: seccionId }).sort({ numero_registro: 1 });
-
-            if (!bienes || bienes.length === 0) {
-                return res.status(404).json({
-                    status: "error",
-                    message: `No se encontraron bienes para la sección ${seccionId}`
-                });
-            } else {
-                return res.status(200).send({
-                    status: "success",
-                    bienes
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                status: "error",
-                message: "Error al obtener los bienes"
-            });
-        }
-    };
-    const obtenerNumeroDeBienesTotales = async (req, res) => {
-  try {
-    // Total de bienes
-    const total = await hemerografia.countDocuments({});
-
-    // Revisados (campo "revisado" igual a "Si")
-    const revisados = await hemerografia.countDocuments({ revisado: "Si" });
-
-    // Pendientes (campo "pendiente" no nulo ni vacío)
-    const pendientes = await hemerografia.countDocuments({
-      pendiente: { $exists: true, $ne: null, $ne: "" }
-    });
-
-    return res.status(200).json({
-      status: "success",
-      total,
-      revisados,
-      pendientes
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Error al obtener el número de bienes",
-      error: error.message
-    });
-  }
+        return res.status(200).json({
+            status: "success",
+            albumes: albumesConFoto
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los álbumes"
+        });
+    }
 };
 
-    const actualizarInstitucion = async (req, res) => {
-        const { institucionanterior, institucionueva } = req.params;
-
-        try {
-            // Buscar todas las fotos que tengan la institución anterior
-            let fotosActualizadas = await hemerografia.updateMany(
-                { institucion: institucionanterior },
-                { $set: { institucion: institucionueva } },
-                { new: true }
-            );
-
-            if (fotosActualizadas.nModified === 0) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "No se encontraron fotografías con la institución especificada"
-                });
-            } else {
-                return res.status(200).json({
-                    status: "success",
-                    message: "Institución actualizada en las fotografías exitosamente",
-                    fotosActualizadas
-                });
+const obtenerSeccionesRecortes = async (req, res) => {
+    try {
+        // Agrupar por sección y contar el número de bienes en cada una
+        const secciones = await hemerografia.aggregate([
+            {
+                $match: {
+                    seccion: { $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: "$seccion",
+                    numeroDeBienes: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    seccion: "$_id",
+                    numeroDeBienes: 1
+                }
+            },
+            {
+                $sort: { seccion: 1 } // Orden ascendente por sección
             }
-        } catch (error) {
-            return res.status(500).json({
+        ]);
+
+        if (!secciones.length) {
+            return res.status(404).json({
                 status: "error",
-                message: "Error al actualizar la institución en las fotografías",
-                error: error.message
+                message: "No se encontraron secciones"
             });
         }
-    };
 
-module.exports={
+        // Obtener todas las secciones registradas
+        const todasLasSecciones = await hemerografia.distinct("seccion", { seccion: { $ne: null } });
+
+        return res.status(200).json({
+            status: "success",
+            secciones: secciones,
+            todasLasSecciones: todasLasSecciones
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las secciones"
+        });
+    }
+};
+
+const actualizarInstitucion = async (req, res) => {
+    const { institucionanterior, institucionueva } = req.params;
+
+    try {
+        // Buscar todas las fotos que tengan la institución anterior
+        let fotosActualizadas = await hemerografia.updateMany(
+            { institucion: institucionanterior },
+            { $set: { institucion: institucionueva } },
+            { new: true }
+        );
+
+        if (fotosActualizadas.nModified === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotografías con la institución especificada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Institución actualizada en las fotografías exitosamente",
+                fotosActualizadas
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar la institución en las fotografías",
+            error: error.message
+        });
+    }
+};
+
+module.exports = {
     pruebaHemerografia,
     registrarHemerografia,
-    cargarFotografia,
+    registrarFotografia,
     borrarHemerografia,
     editarHemerografia,
     obtenerTemasHemerografia,
@@ -1286,14 +1256,12 @@ module.exports={
     actualizarInstitucion,
     obtenerSeccionesRecortes,
     listarPorSeccion,
-    guardarPDF,
-    getChatGPTResponse,
-    getTranscriptionFromImage,
-    processTextAndImage,
+    registrarPDF,
     getSugerencias,
     listarPendientes,
     editarFotografia,
     editarPDFs,
-    buscarHemerografia
+    buscarHemerografia,
+    borrarFotografias,
+    borrarPdfs
 }
-

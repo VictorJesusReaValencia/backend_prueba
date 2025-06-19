@@ -11,6 +11,9 @@ const pruebaInstituciones = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
+//#########################################################################################################//
+//-----------------------------------------Formularios--------------------------------------------------//
+//##########################################################################################################//
 const registrarInstituciones = async (req,res) =>{
     //Recojer parametros por post a guardar
     let parametros = req.body;
@@ -32,7 +35,7 @@ const registrarInstituciones = async (req,res) =>{
         })
     }
 }
-const cargarFotografia = async (req, res) => {
+const registrarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
 
@@ -117,6 +120,89 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
+// Borrar una institucion y sus imágenes asociadas
+const borrarInstituciones = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        let hemero = await instituciones.findOneAndDelete({ _id: id });
+
+        if (!hemero) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada",
+                id
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Hemerografía borrada exitosamente"
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al borrar la Hemerografía"
+        });
+    }
+};
+const borrarFotografias = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await instituciones.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "institución no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(imagen.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todas las imágenes de Firebase",
+                imagenesNoEliminadas: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `imagenes_fb`
+        doc.imagenes_fb = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todas las imágenes fueron eliminadas de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarFotografias:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar las imágenes"
+        });
+    }
+};
+// Editar una institución existente
 const editarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
@@ -214,32 +300,6 @@ const editarFotografia = async (req, res) => {
         });
     }
 };
-
-const borrarInstituciones = async (req, res) => {
-    const id = req.params.id;
-
-    try {
-        let hemero = await instituciones.findOneAndDelete({ _id: id });
-
-        if (!hemero) {
-            return res.status(404).json({
-                status: "error",
-                message: "Hemerografía no encontrada",
-                id
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                message: "Hemerografía borrada exitosamente"
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al borrar la Hemerografía"
-        });
-    }
-};
 const editarInstituciones = async (req, res) => {
     const id = req.params.id;
     const datosActualizados = req.body;
@@ -263,6 +323,100 @@ const editarInstituciones = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: "Error al actualizar la foto"
+        });
+    }
+};
+//#########################################################################################################//
+//-----------------------------------------Tema, tema e insitucion y detalle--------------------------------------------------//
+//##########################################################################################################//
+//-----------------------------------------------Listar--------------------------------------------------//
+const listarPorTema = async (req, res) => {
+    const tema = req.params.id;
+    try {
+        let fotos = await instituciones.find({ tema: tema }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+const listarPorPais = async (req, res) => {
+    const pais = req.params.id;
+    try {
+        let insti = await instituciones.find({ pais: pais }).sort({ nombre: 1 });
+
+        if (!insti || insti.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron instituciones para este país",
+                pais
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                insti
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las instituciones3",
+            pais:pais
+        });
+    }
+};
+const listarTodo = async (req, res) => {
+    try {
+        let inst = await instituciones.find().sort({ pais: 1, ciudad: 1, nombre: 1 });
+
+        if (!inst || inst.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron inst",
+            });
+        }
+
+        // Estructura del resultado
+        const data = {};
+
+        // Iterar sobre cada institución y construir el objeto data
+        inst.forEach((inst) => {
+            const { pais, ciudad, nombre } = inst;
+
+            if (!data[pais]) {
+                data[pais] = {};
+            }
+
+            if (!data[pais][ciudad]) {
+                data[pais][ciudad] = [];
+            }
+
+            data[pais][ciudad].push(nombre);
+        });
+
+        return res.status(200).send({
+            status: "success",
+            data
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los datos",
+            error: error.message
         });
     }
 };
@@ -319,55 +473,6 @@ const obtenerTemasInstituciones = async (req, res) => {
         });
     }
 };
-const listarPorTema = async (req, res) => {
-    const tema = req.params.id;
-    try {
-        let fotos = await instituciones.find({ tema: tema }).sort({ numero_foto: 1 });
-
-        if (!fotos || fotos.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron fotos para este tema"
-            });
-        } else {
-            return res.status(200).send({
-                status: "success",
-                fotos
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener las fotos"
-        });
-    }
-};
-const listarPorPais = async (req, res) => {
-    const pais = req.params.id;
-    try {
-        let insti = await instituciones.find({ pais: pais }).sort({ nombre: 1 });
-
-        if (!insti || insti.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron instituciones para este país",
-                pais
-            });
-        } else {
-            return res.status(200).send({
-                status: "success",
-                insti
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener las instituciones3",
-            pais:pais
-        });
-    }
-};
-
 const obtenerInstitucionesPorNombre = async (req, res) => {
     let nombreHemerografia = req.params.id;
 
@@ -392,54 +497,13 @@ const obtenerInstitucionesPorNombre = async (req, res) => {
         });
     }
 };
-const listarTodo = async (req, res) => {
-    try {
-        let inst = await instituciones.find().sort({ pais: 1, ciudad: 1, nombre: 1 });
-
-        if (!inst || inst.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron inst",
-            });
-        }
-
-        // Estructura del resultado
-        const data = {};
-
-        // Iterar sobre cada institución y construir el objeto data
-        inst.forEach((inst) => {
-            const { pais, ciudad, nombre } = inst;
-
-            if (!data[pais]) {
-                data[pais] = {};
-            }
-
-            if (!data[pais][ciudad]) {
-                data[pais][ciudad] = [];
-            }
-
-            data[pais][ciudad].push(nombre);
-        });
-
-        return res.status(200).send({
-            status: "success",
-            data
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener los datos",
-            error: error.message
-        });
-    }
-};
 
 module.exports={
     pruebaInstituciones,
     registrarInstituciones,
-    cargarFotografia,
+    registrarFotografia,
     borrarInstituciones,
+    borrarFotografias,
     editarInstituciones,
     obtenerTemasInstituciones,
     listarPorTema,

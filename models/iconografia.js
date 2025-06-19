@@ -43,6 +43,12 @@ const IconografiaSchema = new Schema({
       tipo_revision: { type: String }
     }
   ],
+  pdfs: [
+    {
+      nombre: { type: String, },
+      ruta: { type: String, }
+    }
+  ],
   superficie: { type: String },
   tecnica: { type: String },
   tema: { type: String },

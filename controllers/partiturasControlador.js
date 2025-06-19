@@ -14,6 +14,28 @@ const pruebaPartituras = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
+//#########################################################################################################//
+//-----------------------------------------Formularios--------------------------------------------------//
+//##########################################################################################################//
+const getSugerencias = async (req, res) => {
+    try {
+        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
+        if (!query || !campo) {
+            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
+        }
+
+        // Crear un objeto de búsqueda dinámico basado en el campo y la query
+        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
+
+        // Buscar nombres únicos en el campo especificado que coincidan con la query
+        const resultados = await partituras.distinct(campo, criterioBusqueda);
+
+        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar en la base de datos' });
+    }
+};
+//-----------------------------------------------Guardar-Editar-Borrar datos--------------------------------------------------//
 const registrarPartituras = async (req, res) => {
   let parametros = req.body;
 
@@ -48,7 +70,7 @@ const registrarPartituras = async (req, res) => {
     });
   }
 };
-const cargarFotografia = async (req, res) => {
+const registrarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
 
@@ -133,6 +155,79 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
+const registrarPDF = async (req, res) => {
+    const archivos = Array.isArray(req.files) ? req.files : [req.files];
+    const librosId = req.params.id;
+
+    try {
+        const libro = await partituras.findById(librosId);
+        if (!libro) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada"
+            });
+        }
+
+        const limpiarTexto = (texto) =>
+            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
+
+        const autor = limpiarTexto(libro.autor);
+        const descripcionContexto = limpiarTexto(libro.descripcion_contexto);
+
+        const pdfsFirebase = [];
+
+        for (let archivo of archivos) {
+            const extension = archivo.originalname.split(".").pop().toLowerCase();
+            if (extension !== "pdf") {
+                return res.status(400).json({
+                    status: "error",
+                    message: `Archivo no permitido: ${archivo.originalname}`,
+                });
+            }
+
+            let baseName = `Partituras_PDF_${autor}_${descripcionContexto}`;
+            if (baseName.length > 50) {
+                baseName = baseName.slice(0, 50);
+            }
+
+            const timestamp = Date.now();
+            const nombrePDF = `${baseName}_${timestamp}`;
+            const uuid = uuidv4();
+            const file = bucket.file(nombrePDF);
+
+            await file.save(archivo.buffer, {
+                metadata: {
+                    contentType: "application/pdf",
+                    metadata: {
+                        firebaseStorageDownloadTokens: uuid
+                    }
+                }
+            });
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombrePDF)}?alt=media&token=${uuid}`;
+
+            pdfsFirebase.push({ nombre: nombrePDF, ruta: url });
+        }
+
+        libro.pdfs = pdfsFirebase;
+        await libro.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "PDFs subidos correctamente",
+            pdfs: pdfsFirebase
+        });
+
+    } catch (error) {
+        console.error("❌ Error al subir PDFs:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error en el servidor",
+            error
+        });
+    }
+};
+// Borrar una hemerografía y sus imágenes asociadas
 const borrarPartituras = async (req, res) => {
     const id = req.params.id;
 
@@ -200,6 +295,118 @@ const borrarPartituras = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: error.message || "Error al borrar la partitura"
+        });
+    }
+};
+const borrarFotografias = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await partituras.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Partitura no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(imagen.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todas las imágenes de Firebase",
+                imagenesNoEliminadas: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `imagenes_fb`
+        doc.imagenes_fb = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todas las imágenes fueron eliminadas de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarFotografias:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar las imágenes"
+        });
+    }
+};
+const borrarPdfs = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await partituras.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Partitura no encontrada"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar PDFs de Firebase
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                    erroresEliminacion.push(pdf.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todos los PDFs de Firebase",
+                pdfsNoEliminados: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `pdfs`
+        doc.pdfs = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todos los PDFs fueron eliminados de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarPdfs:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar los PDFs"
         });
     }
 };
@@ -520,78 +727,6 @@ const actualizarInstitucion = async (req, res) => {
         });
     }
 };
-const guardarPDF = async (req, res) => {
-    const archivos = Array.isArray(req.files) ? req.files : [req.files];
-    const librosId = req.params.id;
-
-    try {
-        const libro = await partituras.findById(librosId);
-        if (!libro) {
-            return res.status(404).json({
-                status: "error",
-                message: "Hemerografía no encontrada"
-            });
-        }
-
-        const limpiarTexto = (texto) =>
-            texto ? texto.replace(/[\/\\?%*:|"<>]/g, "").trim() : "SinNombre";
-
-        const autor = limpiarTexto(libro.autor);
-        const descripcionContexto = limpiarTexto(libro.descripcion_contexto);
-
-        const pdfsFirebase = [];
-
-        for (let archivo of archivos) {
-            const extension = archivo.originalname.split(".").pop().toLowerCase();
-            if (extension !== "pdf") {
-                return res.status(400).json({
-                    status: "error",
-                    message: `Archivo no permitido: ${archivo.originalname}`,
-                });
-            }
-
-            let baseName = `Partituras_PDF_${autor}_${descripcionContexto}`;
-            if (baseName.length > 50) {
-                baseName = baseName.slice(0, 50);
-            }
-
-            const timestamp = Date.now();
-            const nombrePDF = `${baseName}_${timestamp}`;
-            const uuid = uuidv4();
-            const file = bucket.file(nombrePDF);
-
-            await file.save(archivo.buffer, {
-                metadata: {
-                    contentType: "application/pdf",
-                    metadata: {
-                        firebaseStorageDownloadTokens: uuid
-                    }
-                }
-            });
-
-            const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(nombrePDF)}?alt=media&token=${uuid}`;
-
-            pdfsFirebase.push({ nombre: nombrePDF, ruta: url });
-        }
-
-        libro.pdfs = pdfsFirebase;
-        await libro.save();
-
-        return res.status(200).json({
-            status: "success",
-            message: "PDFs subidos correctamente",
-            pdfs: pdfsFirebase
-        });
-
-    } catch (error) {
-        console.error("❌ Error al subir PDFs:", error);
-        return res.status(500).json({
-            status: "error",
-            message: error.message || "Error en el servidor",
-            error
-        });
-    }
-};
 const getChatGPTResponse = async (req,res) => {
 
     const texto = req.params.id
@@ -724,27 +859,6 @@ const processTextAndImage = async (req, res) => {
         });
     }
 };
-
-
-const getSugerencias = async (req, res) => {
-    try {
-        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
-        if (!query || !campo) {
-            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
-        }
-
-        // Crear un objeto de búsqueda dinámico basado en el campo y la query
-        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
-
-        // Buscar nombres únicos en el campo especificado que coincidan con la query
-        const resultados = await partituras.distinct(campo, criterioBusqueda);
-
-        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
-    } catch (error) {
-        res.status(500).json({ error: 'Error al buscar en la base de datos' });
-    }
-};
-
 const listarPendientes = async (req, res) => {
     try {
         // Encontrar todos los elementos que tienen algo en el campo pendiente
@@ -989,8 +1103,11 @@ module.exports={
     editarPDFs,
     editarFotografia,
     registrarPartituras,
-    cargarFotografia,
+    registrarFotografia,
+    registrarPDF,
     borrarPartituras,
+    borrarFotografias,
+    borrarPdfs,
     editarPartituras,
     obtenerTemasPartituras,
     listarPorTema,
@@ -1001,7 +1118,6 @@ module.exports={
     listarPorTemaEInstitucion,
     obtenerNumeroDeBienesTotales,
     actualizarInstitucion,
-    guardarPDF,
     getChatGPTResponse,
     getTranscriptionFromImage,
     processTextAndImage,

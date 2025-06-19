@@ -13,7 +13,7 @@ const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-instituciones', InstitucionesControlador.pruebaInstituciones);
 router.post("/registrar", InstitucionesControlador.registrarInstituciones);
-router.post('/registrar-imagen/:id', [subidas.array("files", 10)], InstitucionesControlador.cargarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], InstitucionesControlador.registrarFotografia); // Permite hasta 10 archivos
 router.post('/editar-imagen/:id', [subidas.array("files", 10)], InstitucionesControlador.editarFotografia); // Permite hasta 10 archivos
 router.delete('/borrar/:id', InstitucionesControlador.borrarInstituciones);
 router.put('/editar/:id', InstitucionesControlador.editarInstituciones);
@@ -22,6 +22,9 @@ router.get('/tema/:id', InstitucionesControlador.listarPorTema);
 router.get('/pais/:id', InstitucionesControlador.listarPorPais);
 router.get('/:id', InstitucionesControlador.obtenerInstitucionesPorNombre);
 router.get('/listar/todo', InstitucionesControlador.listarTodo);
+
+router.put('/borrar-imagen/:id', InstitucionesControlador.borrarFotografias);
+
 
 
 module.exports = router;

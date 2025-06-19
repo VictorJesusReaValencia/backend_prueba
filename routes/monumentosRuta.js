@@ -39,8 +39,12 @@ const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-monumentos', MonumentosControlador.pruebaMonumentos);
 router.post("/registrar", MonumentosControlador.registrarMonumentos);
-router.post('/registrar-imagen/:id', [subidas.array("files", 10)], MonumentosControlador.cargarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], MonumentosControlador.registrarFotografia); // Permite hasta 10 archivos
 router.delete('/borrar/:id', MonumentosControlador.borrarMonumentos);
+router.put('/borrar-imagen/:id', MonumentosControlador.borrarFotografias);
+router.put('/borrar-pdfs/:id', MonumentosControlador.borrarPdfs);
+router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], MonumentosControlador.editarPDFs); // Permite hasta 10 archivos
+router.post('/editar-imagen/:id', [subidas.array("files", 10)], MonumentosControlador.editarFotografia); // Permite hasta 10 archivos
 router.put('/editar/:id', MonumentosControlador.editarMonumentos);
 router.get('/listar-temas', MonumentosControlador.obtenerTemasMonumentos);
 router.get('/tema/:id', MonumentosControlador.listarPorTema);
@@ -51,15 +55,11 @@ router.get('/listar-temas-instituciones/:id', MonumentosControlador.obtenerTemas
 router.get('/:institucionId/:id', MonumentosControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', MonumentosControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', MonumentosControlador.actualizarInstitucion);
-router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], MonumentosControlador.guardarPDF); // Permite hasta 10 archivos
-router.get('/gpt/amado-nervo/:id', MonumentosControlador.getChatGPTResponse);
-router.post('/gpt/gpt/transcripcion', upload.single('file'), MonumentosControlador.getTranscriptionFromImage);
-router.post('/gpt/image-text/:id', upload.single('file'), MonumentosControlador.processTextAndImage);
+router.post('/registrar-pdfs/:id', [subidas.array("pdfs", 10)], MonumentosControlador.registrarPDF); // Permite hasta 10 archivos
 router.get('/search',MonumentosControlador.getSugerencias)
 router.get('/listar-pendientes', MonumentosControlador.listarPendientes);
 
-router.post('/editar-pdfs/:id', [subidas.array("pdfs", 10)], MonumentosControlador.editarPDFs); // Permite hasta 10 archivos
-router.post('/editar-imagen/:id', [subidas.array("files", 10)], MonumentosControlador.editarFotografia); // Permite hasta 10 archivos
+
 
 
 module.exports = router;

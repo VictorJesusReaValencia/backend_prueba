@@ -11,42 +11,63 @@ const pruebaMonumentos = (req, res) => {
         message: "Mensaje de prueba enviado"
     });
 }
-const registrarMonumentos = async (req, res) => {
-  let parametros = req.body;
+//#########################################################################################################//
+//-----------------------------------------Formularios--------------------------------------------------//
+//##########################################################################################################//
+const getSugerencias = async (req, res) => {
+    try {
+        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
+        if (!query || !campo) {
+            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
+        }
 
-  try {
-    // 👉 Formatear la fecha de publicación si viene incluida
-    if (parametros.fecha_publicacion) {
-      const fechaOriginal = new Date(parametros.fecha_publicacion);
-      parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        // Crear un objeto de búsqueda dinámico basado en el campo y la query
+        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
+
+        // Buscar nombres únicos en el campo especificado que coincidan con la query
+        const resultados = await hemerografia.distinct(campo, criterioBusqueda);
+
+        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar en la base de datos' });
     }
-
-    // 👉 Asignar la fecha de registro legible
-    parametros.fecha_registro = new Date()
-
-    // 👉 Crear y guardar la publicación
-    const publicacion = new monumentos(parametros);
-    const publicacionGuardada = await publicacion.save();
-
-    return res.status(200).json({
-      status: "success",
-      mensaje: "Publicación guardada correctamente",
-      publicacionGuardada
-    });
-
-  } catch (error) {
-    console.error("🔥 Error real:", error);
-
-    return res.status(400).json({
-      status: "error",
-      mensaje: error.message || "Error desconocido",
-      error: error.errors || error,
-      parametros
-    });
-  }
 };
+//-----------------------------------------------Guardar-Editar-Borrar datos--------------------------------------------------//
+const registrarMonumentos = async (req, res) => {
+    let parametros = req.body;
 
-const cargarFotografia = async (req, res) => {
+    try {
+        // 👉 Formatear la fecha de publicación si viene incluida
+        if (parametros.fecha_publicacion) {
+            const fechaOriginal = new Date(parametros.fecha_publicacion);
+            parametros.fecha_publicacion = format(fechaOriginal, 'yyyy-MM-dd');
+        }
+
+        // 👉 Asignar la fecha de registro legible
+        parametros.fecha_registro = new Date()
+
+        // 👉 Crear y guardar la publicación
+        const publicacion = new monumentos(parametros);
+        const publicacionGuardada = await publicacion.save();
+
+        return res.status(200).json({
+            status: "success",
+            mensaje: "Publicación guardada correctamente",
+            publicacionGuardada
+        });
+
+    } catch (error) {
+        console.error("🔥 Error real:", error);
+
+        return res.status(400).json({
+            status: "error",
+            mensaje: error.message || "Error desconocido",
+            error: error.errors || error,
+            parametros
+        });
+    }
+};
+const registrarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
 
@@ -130,395 +151,7 @@ const cargarFotografia = async (req, res) => {
         });
     }
 };
-
-const borrarMonumentos = async (req, res) => {
-    const id = req.params.id;
-
-    try {
-        const doc = await monumentos.findById(id);
-
-        if (!doc) {
-            return res.status(404).json({
-                status: "error",
-                message: "Monumento no encontrado"
-            });
-        }
-
-        let erroresEliminacion = [];
-
-        // 🗑️ Eliminar imágenes de Firebase
-        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
-            for (const imagen of doc.imagenes_fb) {
-                try {
-                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
-                    const file = bucket.file(pathName);
-                    await file.delete();
-                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
-                } catch (error) {
-                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
-                    erroresEliminacion.push(`imagen: ${imagen.nombre}`);
-                }
-            }
-        }
-
-        // 🗑️ Eliminar PDFs de Firebase
-        if (doc.pdfs && doc.pdfs.length > 0) {
-            for (const pdf of doc.pdfs) {
-                try {
-                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
-                    const file = bucket.file(pathName);
-                    await file.delete();
-                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
-                } catch (error) {
-                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
-                    erroresEliminacion.push(`pdf: ${pdf.nombre}`);
-                }
-            }
-        }
-
-        // ❌ Si hubo errores, NO se borra el documento
-        if (erroresEliminacion.length > 0) {
-            return res.status(500).json({
-                status: "error",
-                message: "No se pudieron eliminar todos los archivos, el documento no fue borrado",
-                archivosNoEliminados: erroresEliminacion
-            });
-        }
-
-        // ✅ Si todo fue eliminado correctamente, borrar el documento de MongoDB
-        await monumentos.findByIdAndDelete(id);
-
-        return res.status(200).json({
-            status: "success",
-            message: "Monumento, imágenes y PDFs eliminados correctamente"
-        });
-
-    } catch (error) {
-        console.error("❌ Error en borrarMonumento:", error);
-        return res.status(500).json({
-            status: "error",
-            message: error.message || "Error al borrar el monumento",
-        });
-    }
-};
-const editarMonumentos = async (req, res) => {
-    const id = req.params.id;
-    const datosActualizados = req.body;
-
-    try {
-        let foto = await monumentos.findByIdAndUpdate(id, datosActualizados, { new: true });
-
-        if (!foto) {
-            return res.status(404).json({
-                status: "error",
-                message: "Foto no encontrada"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                message: "Foto actualizada exitosamente",
-                foto
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al actualizar la hemerografía",
-            error: error.message || "Error desconocido"
-        });
-    }
-}
-const obtenerTemasMonumentos = async (req, res) => {
-    try {
-        // Obtener temas y número de fotos por tema
-        const temas = await monumentos.aggregate([
-            {
-                $group: {
-                    _id: "$tema",
-                    numeroDeFotos: { $sum: 1 }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    tema: "$_id",
-                    numeroDeFotos: 1
-                }
-            }
-        ]);
-
-        if (!temas.length) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron temas"
-            });
-        }
-
-        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
-        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
-            const libroAleatorio = await monumentos.aggregate([
-                { $match: { tema: tema.tema } },
-                { $sample: { size: 1 } }
-            ]);
-
-            const nombreImagen = libroAleatorio[0]?.images?.length > 0 ? libroAleatorio[0].images[0].nombre : null;
-
-            return {
-                ...tema,
-                fotoAleatoria: libroAleatorio[0] ? libroAleatorio[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
-                nombreImagen: nombreImagen
-            };
-        }));
-
-        return res.status(200).json({
-            status: "success",
-            temas: temasConFotoYNombre
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener los temas"
-        });
-    }
-};
-const listarPorTema = async (req, res) => {
-    const tema = req.params.id;
-    try {
-        let fotos = await monumentos.find({ tema: tema }).sort({ numero_foto: 1 });
-
-        if (!fotos || fotos.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron fotos para este tema"
-            });
-        } else {
-            return res.status(200).send({
-                status: "success",
-                fotos
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener las fotos"
-        });
-    }
-};
-const obtenerMonumentosPorID = async (req, res) => {
-    let hemeroID = req.params.id;
-
-    try {
-        let monu= await monumentos.findById(hemeroID);
-
-        if (!monu) {
-            return res.status(404).json({
-                status: "error",
-                message: "Hemerografía no encontrada"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                monu
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener la hemerografía"
-        });
-    }
-};
-
-const obtenerNumeroDeFotosPorPais = async (req, res) => {
-    let paisID = req.params.id;
-  
-    try {
-      // Suponiendo que monumentos es tu modelo de Mongoose
-      let fotosCount = await monumentos.countDocuments({ pais: paisID });
-  
-      return res.status(200).json({
-        status: "success",
-        count: fotosCount
-      });
-    } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Error al obtener el número de fotos"
-      });
-    }
-  };
-const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
-let paisID = req.params.id;
-
-try {
-    // Suponiendo que monumentos es tu modelo de Mongoose
-    let fotosCount = await monumentos.countDocuments({ institucion: paisID });
-
-    return res.status(200).json({
-    status: "success",
-    count: fotosCount
-    });
-} catch (error) {
-    return res.status(500).json({
-    status: "error",
-    message: "Error al obtener el número de fotos"
-    });
-}
-};
-const obtenerTemasInstituciones = async (req, res) => {
-    try {
-        const institucionId = req.params.id;
-
-        console.log('Institucion ID:', institucionId);
-
-        // Obtener temas y número de fotos por tema filtrando por institución
-        const temas = await monumentos.aggregate([
-            {
-                $match: {
-                    institucion: institucionId
-                }
-            },
-            {
-                $group: {
-                    _id: "$tema",
-                    numeroDeFotos: { $sum: 1 }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    tema: "$_id",
-                    numeroDeFotos: 1
-                }
-            }
-        ]);
-
-        console.log('Temas encontrados:', temas);
-
-        if (!temas.length) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron temas"
-            });
-        }
-
-        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
-        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
-            const fotoAleatoria = await monumentos.aggregate([
-                { $match: { tema: tema.tema, institucion: institucionId } },
-                { $sample: { size: 1 } }
-            ]);
-
-            const nombreImagen = fotoAleatoria[0]?.images?.length > 0 ? fotoAleatoria[0].images[0].nombre : null;
-
-            return {
-                ...tema,
-                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
-                nombreImagen: nombreImagen
-            };
-        }));
-
-        console.log('Temas con foto y nombre:', temasConFotoYNombre);
-
-        return res.status(200).json({
-            status: "success",
-            temas: temasConFotoYNombre
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener los temas"
-        });
-    }
-};
-
-
-const listarPorTemaEInstitucion = async (req, res) => {
-    const { institucionId, id: tema } = req.params;
-    console.log(institucionId)
-    console.log(tema)
-    try {
-        let fotos = await monumentos.find({ tema: tema, institucion: institucionId }).sort({ numero_foto: 1 });
-
-        if (!fotos || fotos.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron fotos para este tema e institución"
-            });
-        } else {
-            return res.status(200).send({
-                status: "success",
-                fotos
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener las fotos"
-        });
-    }
-};
-const obtenerNumeroDeBienesTotales = async (req, res) => {
-  try {
-    // Total de bienes
-    const total = await monumentos.countDocuments({});
-
-    // Revisados (campo "revisado" igual a "Si")
-    const revisados = await monumentos.countDocuments({ revisado: "Si" });
-
-    // Pendientes (campo "pendiente" no nulo ni vacío)
-    const pendientes = await monumentos.countDocuments({
-      pendiente: { $exists: true, $ne: null, $ne: "" }
-    });
-
-    return res.status(200).json({
-      status: "success",
-      total,
-      revisados,
-      pendientes
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Error al obtener el número de bienes",
-      error: error.message
-    });
-  }
-};
-const actualizarInstitucion = async (req, res) => {
-    const { institucionanterior, institucionueva } = req.params;
-
-    try {
-        // Buscar todas las fotos que tengan la institución anterior
-        let fotosActualizadas = await monumentos.updateMany(
-            { institucion: institucionanterior },
-            { $set: { institucion: institucionueva } },
-            { new: true }
-        );
-
-        if (fotosActualizadas.nModified === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontraron fotografías con la institución especificada"
-            });
-        } else {
-            return res.status(200).json({
-                status: "success",
-                message: "Institución actualizada en las fotografías exitosamente",
-                fotosActualizadas
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al actualizar la institución en las fotografías",
-            error: error.message
-        });
-    }
-};
-const guardarPDF = async (req, res) => {
+const registrarPDF = async (req, res) => {
     const archivos = Array.isArray(req.files) ? req.files : [req.files];
     const librosId = req.params.id;
 
@@ -589,198 +222,217 @@ const guardarPDF = async (req, res) => {
         });
     }
 };
-const getChatGPTResponse = async (req,res) => {
+// Borrar un monumento y sus imágenes asociadas
+const borrarFotografias = async (req, res) => {
+    const id = req.params.id;
 
-    const texto = req.params.id
     try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: texto }],
-        });
-        console.log(response.choices[0].message.content)
-        return res.status(200).json({
-            status: "success",
-            message: response.choices[0].message.content,
-            
-        });
-    } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
-        return 'No se pudo obtener una respuesta de ChatGPT.';
-    }
-};
+        const doc = await monumentos.findById(id);
 
-const getTranscriptionFromImage = async (req, res) => {
-    try {
-        // Asegurarse de que se haya enviado un archivo
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No se ha enviado ninguna imagen."
-            });
-        }
-
-        // Obtener la ruta temporal de la imagen subida
-        const imagePath = req.file.path;
-
-        // Leer la imagen y convertirla a base64
-        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
-
-        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: "Dame la transcripcion de esta imagen, solo contesta con el texto de la transcripcion"
-                        },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:image/jpeg;base64,${imageData}`
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 300
-        });
-
-        // Mostrar la respuesta en la consola
-        console.log(response.choices[0].message);
-
-        return res.status(200).json({
-            status: "success",
-            transcription: response.choices[0].message.content,
-        });
-    } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
-        return res.status(500).json({
-            status: "error",
-            message: 'No se pudo obtener una transcripción de la imagen.',
-            error: error
-        });
-    }
-};
-const processTextAndImage = async (req, res) => {
-    const texto = req.params.id;
-    
-    try {
-        // Asegurarse de que se haya enviado un archivo de imagen
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No se ha enviado ninguna imagen."
-            });
-        }
-
-        // Obtener la ruta temporal de la imagen subida
-        const imagePath = req.file.path;
-
-        // Leer la imagen y convertirla a base64
-        const imageData = fs.readFileSync(imagePath, { encoding: 'base64' });
-
-        // Realizar la solicitud a la API de OpenAI utilizando la librería oficial
-        const response = await  openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: texto
-                        },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:image/jpeg;base64,${imageData}`
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 300
-        });
-
-        // Mostrar la respuesta en la consola
-        console.log(response.choices[0].message.content);
-
-        return res.status(200).json({
-            status: "success",
-            message: response.choices[0].message.content,
-        });
-    } catch (error) {
-        console.error('Error al hacer la solicitud a la API:', error.message);
-        return res.status(500).json({
-            status: "error",
-            message: 'No se pudo obtener una respuesta de ChatGPT.',
-            error: error
-        });
-    }
-};
-
-
-const getSugerencias = async (req, res) => {
-    try {
-        const { query, campo } = req.query; // Obtener la query y el campo de la solicitud
-        if (!query || !campo) {
-            return res.status(400).json({ error: 'Se requieren un término de búsqueda y un campo válido' });
-        }
-
-        // Crear un objeto de búsqueda dinámico basado en el campo y la query
-        const criterioBusqueda = { [campo]: { $regex: query, $options: 'i' } };
-
-        // Buscar nombres únicos en el campo especificado que coincidan con la query
-        const resultados = await hemerografia.distinct(campo, criterioBusqueda);
-
-        res.json(resultados.slice(0, 10)); // Limitar el resultado a 10 sugerencias
-    } catch (error) {
-        res.status(500).json({ error: 'Error al buscar en la base de datos' });
-    }
-};
-
-const listarPendientes = async (req, res) => {
-    try {
-        // Encontrar todos los elementos que tienen algo en el campo pendiente
-        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
-
-        if (!pendientes || pendientes.length === 0) {
+        if (!doc) {
             return res.status(404).json({
                 status: "error",
-                message: "No se encontraron elementos pendientes"
+                message: "Monumento no encontrado"
             });
         }
 
-        // Contar cuántos elementos tienen revisado igual a "Sí"
-        const revisados = pendientes.filter(item => item.revisado === "Sí").length;
+        let erroresEliminacion = [];
 
-        // Filtrar los elementos que no tienen revisado igual a "Sí"
-        pendientes = pendientes.filter(item => item.revisado !== "Sí");
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(imagen.nombre);
+                }
+            }
+        }
 
-        const totalPendientes = pendientes.length ;
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todas las imágenes de Firebase",
+                imagenesNoEliminadas: erroresEliminacion
+            });
+        }
 
-        if (totalPendientes === 0) {
+        // ✅ Actualizar documento en MongoDB eliminando el campo `imagenes_fb`
+        doc.imagenes_fb = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todas las imágenes fueron eliminadas de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarFotografias:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar las imágenes"
+        });
+    }
+};
+const borrarPdfs = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await monumentos.findById(id);
+
+        if (!doc) {
             return res.status(404).json({
                 status: "error",
-                message: "No se encontraron elementos pendientes"
+                message: "Monumento no encontrado"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar PDFs de Firebase
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                    erroresEliminacion.push(pdf.nombre);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, no se actualiza MongoDB
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todos los PDFs de Firebase",
+                pdfsNoEliminados: erroresEliminacion
+            });
+        }
+
+        // ✅ Actualizar documento en MongoDB eliminando el campo `pdfs`
+        doc.pdfs = [];
+        await doc.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Todos los PDFs fueron eliminados de Firebase y MongoDB"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarPdfs:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar los PDFs"
+        });
+    }
+};
+const borrarMonumentos = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const doc = await monumentos.findById(id);
+
+        if (!doc) {
+            return res.status(404).json({
+                status: "error",
+                message: "Monumento no encontrado"
+            });
+        }
+
+        let erroresEliminacion = [];
+
+        // 🗑️ Eliminar imágenes de Firebase
+        if (doc.imagenes_fb && doc.imagenes_fb.length > 0) {
+            for (const imagen of doc.imagenes_fb) {
+                try {
+                    const pathName = decodeURIComponent(imagen.url.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ Imagen eliminada de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar la imagen: ${imagen.nombre}`);
+                    erroresEliminacion.push(`imagen: ${imagen.nombre}`);
+                }
+            }
+        }
+
+        // 🗑️ Eliminar PDFs de Firebase
+        if (doc.pdfs && doc.pdfs.length > 0) {
+            for (const pdf of doc.pdfs) {
+                try {
+                    const pathName = decodeURIComponent(pdf.ruta.split("/o/")[1].split("?")[0]);
+                    const file = bucket.file(pathName);
+                    await file.delete();
+                    console.log(`🗑️ PDF eliminado de Firebase: ${pathName}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo eliminar el PDF: ${pdf.nombre}`);
+                    erroresEliminacion.push(`pdf: ${pdf.nombre}`);
+                }
+            }
+        }
+
+        // ❌ Si hubo errores, NO se borra el documento
+        if (erroresEliminacion.length > 0) {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudieron eliminar todos los archivos, el documento no fue borrado",
+                archivosNoEliminados: erroresEliminacion
+            });
+        }
+
+        // ✅ Si todo fue eliminado correctamente, borrar el documento de MongoDB
+        await monumentos.findByIdAndDelete(id);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Monumento, imágenes y PDFs eliminados correctamente"
+        });
+
+    } catch (error) {
+        console.error("❌ Error en borrarMonumento:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error al borrar el monumento",
+        });
+    }
+};
+// Editar un monumento existente
+const editarMonumentos = async (req, res) => {
+    const id = req.params.id;
+    const datosActualizados = req.body;
+
+    try {
+        let foto = await monumentos.findByIdAndUpdate(id, datosActualizados, { new: true });
+
+        if (!foto) {
+            return res.status(404).json({
+                status: "error",
+                message: "Foto no encontrada"
             });
         } else {
-            return res.status(200).send({
+            return res.status(200).json({
                 status: "success",
-                totalPendientes: totalPendientes - revisados, // Restar los revisados del total
-                pendientes
+                message: "Foto actualizada exitosamente",
+                foto
             });
         }
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener los elementos pendientes"
+            message: "Error al actualizar la hemerografía",
+            error: error.message || "Error desconocido"
         });
     }
-};
+}
 const editarFotografia = async (req, res) => {
     const archivos = req.files;
     const id = req.params.id;
@@ -977,13 +629,423 @@ const editarPDFs = async (req, res) => {
         });
     }
 };
+//-----------------------------------------------Buscador--------------------------------------------------//
+const buscarHemerografia = async (req, res) => {
+    try {
+        const {
+            texto,
+            anioInicio,
+            anioFin,
+            fecha_publicacion,
+            pais,
+            ciudad,
+            periodico
+        } = req.query;
 
-module.exports={
+        const filtros = {};
+
+        // Filtro de texto libre
+        if (texto && texto.trim() !== "") {
+            const regex = new RegExp(texto.trim(), "i");
+            filtros.$or = [
+                { nombre_periodico: regex },
+                { tema: regex },
+                { encabezado: regex },
+                { autor: regex },
+                { seccion: regex },
+                { resumen: regex }
+            ];
+        }
+
+        // Filtro por año exacto (rango añoInicio - añoFin)
+        if (anioInicio || anioFin) {
+            const desde = anioInicio ? new Date(`${anioInicio}-01-01`) : new Date("1700-01-01");
+            const hasta = anioFin ? new Date(`${anioFin}-12-31T23:59:59`) : new Date();
+
+            filtros.fecha_publicacion = {
+                $gte: desde,
+                $lte: hasta
+            };
+        }
+
+        // Filtro por fecha exacta
+        if (fecha_publicacion) {
+            const fecha = new Date(fecha_publicacion);
+            const siguienteDia = new Date(fecha);
+            siguienteDia.setDate(fecha.getDate() + 1);
+
+            filtros.fecha_publicacion = {
+                $gte: fecha,
+                $lt: siguienteDia
+            };
+        }
+
+        // Filtros directos
+        if (pais) filtros.pais = new RegExp(pais, "i");
+        if (ciudad) filtros.ciudad = new RegExp(ciudad, "i");
+        if (periodico) filtros.nombre_periodico = new RegExp(periodico, "i");
+
+        const resultados = await hemerografia.find(filtros).limit(50);
+
+        return res.status(200).json({
+            status: "success",
+            resultados
+        });
+
+    } catch (error) {
+        console.error("❌ Error en la búsqueda:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error al realizar la búsqueda",
+            error
+        });
+    }
+};
+//#########################################################################################################//
+//-----------------------------------------Tema, tema e insitucion y detalle--------------------------------------------------//
+//##########################################################################################################//
+//-----------------------------------------------Listar--------------------------------------------------//
+const listarPorTema = async (req, res) => {
+    const tema = req.params.id;
+    try {
+        let fotos = await monumentos.find({ tema: tema }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+const listarPendientes = async (req, res) => {
+    try {
+        // Encontrar todos los elementos que tienen algo en el campo pendiente
+        let pendientes = await hemerografia.find({ pendiente: { $regex: /^.{1,}$/ } }).sort({ numero_registro: 1 });
+
+        if (!pendientes || pendientes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        }
+
+        // Contar cuántos elementos tienen revisado igual a "Sí"
+        const revisados = pendientes.filter(item => item.revisado === "Sí").length;
+
+        // Filtrar los elementos que no tienen revisado igual a "Sí"
+        pendientes = pendientes.filter(item => item.revisado !== "Sí");
+
+        const totalPendientes = pendientes.length;
+
+        if (totalPendientes === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron elementos pendientes"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                totalPendientes: totalPendientes - revisados, // Restar los revisados del total
+                pendientes
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los elementos pendientes"
+        });
+    }
+};
+const listarPorTemaEInstitucion = async (req, res) => {
+    const { institucionId, id: tema } = req.params;
+    console.log(institucionId)
+    console.log(tema)
+    try {
+        let fotos = await monumentos.find({ tema: tema, institucion: institucionId }).sort({ numero_foto: 1 });
+
+        if (!fotos || fotos.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotos para este tema e institución"
+            });
+        } else {
+            return res.status(200).send({
+                status: "success",
+                fotos
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener las fotos"
+        });
+    }
+};
+//#########################################################################################################//
+//-----------------------------------------Acervo e instituciones--------------------------------------------------//
+//##########################################################################################################//
+//-----------------------------------------------Obtener numeros de registros--------------------------------------------------//
+const obtenerNumeroDeFotosPorPais = async (req, res) => {
+    let paisID = req.params.id;
+
+    try {
+        // Suponiendo que monumentos es tu modelo de Mongoose
+        let fotosCount = await monumentos.countDocuments({ pais: paisID });
+
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
+    }
+};
+const obtenerNumeroDeFotosPorInstitucion = async (req, res) => {
+    let paisID = req.params.id;
+
+    try {
+        // Suponiendo que monumentos es tu modelo de Mongoose
+        let fotosCount = await monumentos.countDocuments({ institucion: paisID });
+
+        return res.status(200).json({
+            status: "success",
+            count: fotosCount
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de fotos"
+        });
+    }
+};
+//-----------------------------------------------Temas--------------------------------------------------//
+const obtenerTemasMonumentos = async (req, res) => {
+    try {
+        // Obtener temas y número de fotos por tema
+        const temas = await monumentos.aggregate([
+            {
+                $group: {
+                    _id: "$tema",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    tema: "$_id",
+                    numeroDeFotos: 1
+                }
+            }
+        ]);
+
+        if (!temas.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron temas"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const libroAleatorio = await monumentos.aggregate([
+                { $match: { tema: tema.tema } },
+                { $sample: { size: 1 } }
+            ]);
+
+            const nombreImagen = libroAleatorio[0]?.images?.length > 0 ? libroAleatorio[0].images[0].nombre : null;
+
+            return {
+                ...tema,
+                fotoAleatoria: libroAleatorio[0] ? libroAleatorio[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+                nombreImagen: nombreImagen
+            };
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            temas: temasConFotoYNombre
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los temas"
+        });
+    }
+};
+const obtenerTemasInstituciones = async (req, res) => {
+    try {
+        const institucionId = req.params.id;
+
+        console.log('Institucion ID:', institucionId);
+
+        // Obtener temas y número de fotos por tema filtrando por institución
+        const temas = await monumentos.aggregate([
+            {
+                $match: {
+                    institucion: institucionId
+                }
+            },
+            {
+                $group: {
+                    _id: "$tema",
+                    numeroDeFotos: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    tema: "$_id",
+                    numeroDeFotos: 1
+                }
+            }
+        ]);
+
+        console.log('Temas encontrados:', temas);
+
+        if (!temas.length) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron temas"
+            });
+        }
+
+        // Obtener una foto aleatoria por cada tema y el valor del primer elemento en el campo nombre
+        const temasConFotoYNombre = await Promise.all(temas.map(async tema => {
+            const fotoAleatoria = await monumentos.aggregate([
+                { $match: { tema: tema.tema, institucion: institucionId } },
+                { $sample: { size: 1 } }
+            ]);
+
+            const nombreImagen = fotoAleatoria[0]?.images?.length > 0 ? fotoAleatoria[0].images[0].nombre : null;
+
+            return {
+                ...tema,
+                fotoAleatoria: fotoAleatoria[0] ? fotoAleatoria[0].image : null, // Asumiendo que la URL de la foto se encuentra en el campo 'image'
+                nombreImagen: nombreImagen
+            };
+        }));
+
+        console.log('Temas con foto y nombre:', temasConFotoYNombre);
+
+        return res.status(200).json({
+            status: "success",
+            temas: temasConFotoYNombre
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los temas"
+        });
+    }
+};
+const obtenerNumeroDeBienesTotales = async (req, res) => {
+    try {
+        // Total de bienes
+        const total = await monumentos.countDocuments({});
+
+        // Revisados (campo "revisado" igual a "Si")
+        const revisados = await monumentos.countDocuments({ revisado: "Si" });
+
+        // Pendientes (campo "pendiente" no nulo ni vacío)
+        const pendientes = await monumentos.countDocuments({
+            pendiente: { $exists: true, $ne: null, $ne: "" }
+        });
+
+        return res.status(200).json({
+            status: "success",
+            total,
+            revisados,
+            pendientes
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener el número de bienes",
+            error: error.message
+        });
+    }
+};
+const obtenerMonumentosPorID = async (req, res) => {
+    let hemeroID = req.params.id;
+
+    try {
+        let monu = await monumentos.findById(hemeroID);
+
+        if (!monu) {
+            return res.status(404).json({
+                status: "error",
+                message: "Hemerografía no encontrada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                monu
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener la hemerografía"
+        });
+    }
+};
+const actualizarInstitucion = async (req, res) => {
+    const { institucionanterior, institucionueva } = req.params;
+
+    try {
+        // Buscar todas las fotos que tengan la institución anterior
+        let fotosActualizadas = await monumentos.updateMany(
+            { institucion: institucionanterior },
+            { $set: { institucion: institucionueva } },
+            { new: true }
+        );
+
+        if (fotosActualizadas.nModified === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontraron fotografías con la institución especificada"
+            });
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Institución actualizada en las fotografías exitosamente",
+                fotosActualizadas
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar la institución en las fotografías",
+            error: error.message
+        });
+    }
+};
+
+module.exports = {
     pruebaMonumentos,
     editarPDFs,
     editarFotografia,
     registrarMonumentos,
-    cargarFotografia,
+    registrarFotografia,
+    registrarPDF,
+    borrarFotografias,
+    borrarPdfs,
     borrarMonumentos,
     editarMonumentos,
     obtenerTemasMonumentos,
@@ -995,10 +1057,6 @@ module.exports={
     listarPorTemaEInstitucion,
     obtenerNumeroDeBienesTotales,
     actualizarInstitucion,
-    guardarPDF,
-    getChatGPTResponse,
-    getTranscriptionFromImage,
-    processTextAndImage,
     getSugerencias,
     listarPendientes
 }

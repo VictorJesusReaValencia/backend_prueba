@@ -41,8 +41,12 @@ const upload = multer({ dest: 'imagenes/' });
 
 router.get('/prueba-iconografia', IconografiaControlador.pruebaIconografia);
 router.post("/registrar", IconografiaControlador.registrarIconografia);
-router.post('/registrar-imagen/:id', [subidas.array("files", 10)], IconografiaControlador.cargarFotografia); // Permite hasta 10 archivos
+router.post('/registrar-imagen/:id', [subidas.array("files", 10)], IconografiaControlador.registrarFotografia); // Permite hasta 10 archivos
 router.delete('/borrar/:id', IconografiaControlador.borrarIconografia);
+
+router.put('/borrar-imagen/:id', IconografiaControlador.borrarFotografias);
+router.put('/borrar-pdfs/:id', IconografiaControlador.borrarPdfs);
+
 router.put('/editar/:id', IconografiaControlador.editarIconografia);
 router.get('/listar-temas', IconografiaControlador.obtenerTemasIconografia);
 router.get('/tema/:id', IconografiaControlador.listarPorTema);
@@ -53,10 +57,7 @@ router.get('/listar-temas-instituciones/:id', IconografiaControlador.obtenerTema
 router.get('/:institucionId/:id', IconografiaControlador.listarPorTemaEInstitucion);
 router.get('/numero-bienes', IconografiaControlador.obtenerNumeroDeBienesTotales);
 router.put('/actualizar-institucion/:institucionanterior/:institucionueva', IconografiaControlador.actualizarInstitucion);
-router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], IconografiaControlador.guardarPDF); // Permite hasta 10 archivos
-router.get('/gpt/amado-nervo/:id', IconografiaControlador.getChatGPTResponse);
-router.post('/gpt/gpt/transcripcion', upload.single('file'), IconografiaControlador.getTranscriptionFromImage);
-router.post('/gpt/image-text/:id', upload.single('file'), IconografiaControlador.processTextAndImage);
+router.post('/registrar-pdf/:id', [subidas.array("pdfs", 10)], IconografiaControlador.registrarPDF); // Permite hasta 10 archivos
 router.get('/search',IconografiaControlador.getSugerencias)
 router.get('/listar-pendientes', IconografiaControlador.listarPendientes);
 
